@@ -54,3 +54,4 @@ builds/**/images/*
 *.txt
 *.csv
 *.log
+,json
