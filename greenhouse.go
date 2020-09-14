@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"time"
+
+	"github.com/SEB534542/seb"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -30,13 +33,14 @@ type Led struct {
 // A pump represents the waterpump that can be activated through the Pin to
 // add water to the greenhouse
 type Pump struct {
-	Id  string
+	Id  string `json:"PumpId"`
 	Pin int
+	Dur time.Duration
 }
 
 type MoistSensor struct {
 	Id    string
-	Value float64
+	Value int
 	Pin   int
 }
 
@@ -48,19 +52,24 @@ type Servo struct {
 
 type TempSensor struct {
 	Id    string
-	Value float64
+	Value int
 	Pin   int
 }
 
-type Greenhouse struct {
-	Leds     []Led
-	Pumps    []Pump
+type Box struct {
+	Id string
+	Pump
 	MoistSs  []MoistSensor
-	Servos   []Servo
-	TempSs   []TempSensor
-	MoistMin float64
-	TempMin  float64
-	TempMax  float64
+	MoistMin int
+}
+
+type Greenhouse struct {
+	Leds    []Led
+	Servos  []Servo
+	TempSs  []TempSensor
+	Boxes   []Box
+	TempMin float64
+	TempMax float64
 }
 
 func main() {
@@ -70,10 +79,41 @@ func main() {
 	checkErr(err)
 	checkErr(json.Unmarshal(data, g1))
 
-	fmt.Println(g1)
+	for _,b := g1.Boxes {
+		b.MonitorMoist()
+	}
+	g1.monitorLED()
 }
 
-func MonitorMoist
+// MonitorLED checks if LED should be enabled or disabled
+func (g *Box) monitorLight() {
+	b.Led
+}
+
+// MonitorMoist monitors moisture and if insufficent enables the pump
+func (b *Box) monitorMoist() {
+	values := []int{}
+	for _, s := range b.MoistSs {
+		s.getMoist()
+		values = append(values, s.Value)
+		fmt.Print(s.Value, ", ")
+	}
+	moist := seb.CalcAverage(values...)
+	fmt.Println("Average=", moist)
+	if moist <= b.MoistMin {
+		// TODO: start pump for t seconds
+		log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
+	}
+}
+
+func (s *MoistSensor) getMoist() {
+	// TODO: get Moist value from RPIO
+	// Seed the random number generator using the current time (nanoseconds since epoch)
+	rand.Seed(time.Now().UnixNano())
+
+	// Much harder to predict...but it is still possible if you know the day, and hour, minute...
+	s.Value = rand.Intn(1000)
+}
 
 func checkErr(err error) {
 	if err != nil {
