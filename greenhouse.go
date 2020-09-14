@@ -73,21 +73,54 @@ type Greenhouse struct {
 }
 
 func main() {
+	log.Println("--------Start of program--------")
+
 	// Load greenhouse config
 	g1 := &Greenhouse{}
 	data, err := ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, g1))
 
-	for _,b := g1.Boxes {
-		b.MonitorMoist()
+	log.Println("There is/are", len(g1.Boxes), " boxes configured")
+	for _, b := range g1.Boxes {
+		b.monitorMoist()
 	}
-	g1.monitorLED()
+	g1.monitorLed()
 }
 
 // MonitorLED checks if LED should be enabled or disabled
-func (g *Box) monitorLight() {
-	b.Led
+func (g *Greenhouse) monitorLed() {
+	for _, l := range g.Leds {
+		if time.Now().After(l.End) {
+			l.switchLedOff()
+			// TODO: resetdays using seb
+		}
+	}
+	return
+}
+
+func (l *Led) switchLedOn() {
+	if !l.Active {
+		l.switchLed()
+	}
+}
+
+func (l *Led) switchLedOff() {
+	if l.Active {
+		l.switchLed()
+	}
+}
+
+func (l *Led) switchLed() {
+	if l.Active {
+		// TODO: turn LED off
+		log.Printf("Turning Led %s off", l.Id)
+		l.Active = false
+	} else {
+		// TODO: turn LED on
+		log.Printf("Turning Led %s on", l.Id)
+		l.Active = true
+	}
 }
 
 // MonitorMoist monitors moisture and if insufficent enables the pump
