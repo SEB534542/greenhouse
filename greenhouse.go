@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
-
-	"github.com/SEB534542/seb"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -64,54 +64,20 @@ type Greenhouse struct {
 }
 
 func main() {
-	g1 := &Greenhouse{
-		Leds: []Led{
-			Led{
-				Id:     "Led 1",
-				Pin:    1,
-				Start:  time.Now().Add(-60 * time.Minute),
-				End:    time.Now().Add(60 * time.Minute),
-				Active: false,
-			},
-		},
-		Pumps: []Pump{
-			Pump{
-				Id:  "Pump 1",
-				Pin: 2,
-			},
-		},
-		MoistSs: []MoistSensor{
-			MoistSensor{
-				Id:    "Moisture sensor 1",
-				Pin:   3,
-				Value: 0,
-			},
-		},
-		Servos: []Servo{
-			Servo{
-				Id:  "Servo pump 1",
-				Pin: 4,
-			},
-		},
-		TempSs: []TempSensor{
-			TempSensor{
-				Id:    "Temp sensor 1",
-				Pin:   5,
-				Value: 0,
-			},
-		},
-		MoistMin: 15,
-		TempMin:  15,
-		TempMax:  20,
-	}
+	// Load greenhouse config
+	g1 := &Greenhouse{}
+	data, err := ioutil.ReadFile("./config/" + ghFile)
+	checkErr(err)
+	checkErr(json.Unmarshal(data, g1))
+
 	fmt.Println(g1)
-	// Save g1 to JSON
-	checkErr(seb.SaveToJSON(g1, "greenhouses.json"))
 }
+
+func MonitorMoist
 
 func checkErr(err error) {
 	if err != nil {
-		log.Println("Error:", err)
+		log.Panic("Error:", err)
 	}
 	return
 }
