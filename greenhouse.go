@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/SEB534542/seb"
@@ -11,93 +12,106 @@ import (
 
 // TODO: create interface for all sensors(?)
 
+// TODO: create a slice of greenhouses
+
+// ghFile contains the json filename for storing the greenhouse config
+const ghFile = "greenhouse.json"
+
 // A led represents the a LED light in the greenhouse
-type led struct {
+type Led struct {
 	// Name specifies the identifier (name or a number) of the led
-	id     string // e.g. "Main" or "01"
-	active bool
-	pin    int
-	start  time.Time
-	end    time.Time
+	Id     string // e.g. "Main" or "01"
+	Active bool
+	Pin    int
+	Start  time.Time
+	End    time.Time
 }
 
-// A pump represents the waterpump that can be activated through the pin to
+// A pump represents the waterpump that can be activated through the Pin to
 // add water to the greenhouse
-type pump struct {
-	id  string
-	pin int
+type Pump struct {
+	Id  string
+	Pin int
 }
 
-type moistSensor struct {
-	id    string
-	value float64
-	pin   int
+type MoistSensor struct {
+	Id    string
+	Value float64
+	Pin   int
 }
 
 // A servo represents a servo motor to open a window for ventilation
-type servo struct {
-	id  string
-	pin int
+type Servo struct {
+	Id  string
+	Pin int
 }
 
-type tempSensor struct {
-	id    string
-	value float64
-	pin   int
+type TempSensor struct {
+	Id    string
+	Value float64
+	Pin   int
 }
 
-type greenhouse struct {
-	leds    []led
-	pumps   []pump
-	moistSs []moistSensor
-	servos  []servo
-	tempSs  []tempSensor
+type Greenhouse struct {
+	Leds     []Led
+	Pumps    []Pump
+	MoistSs  []MoistSensor
+	Servos   []Servo
+	TempSs   []TempSensor
+	MoistMin float64
+	TempMin  float64
+	TempMax  float64
 }
 
 func main() {
-	g1 := &greenhouse{
-		leds: []led{
-			led{
-				id:     "Led 1",
-				pin:    1,
-				start:  time.Now().Add(-60 * time.Minute),
-				end:    time.Now().Add(60 * time.Minute),
-				active: false,
+	g1 := &Greenhouse{
+		Leds: []Led{
+			Led{
+				Id:     "Led 1",
+				Pin:    1,
+				Start:  time.Now().Add(-60 * time.Minute),
+				End:    time.Now().Add(60 * time.Minute),
+				Active: false,
 			},
 		},
-		pumps: []pump{
-			pump{
-				id:  "Pump 1",
-				pin: 2,
+		Pumps: []Pump{
+			Pump{
+				Id:  "Pump 1",
+				Pin: 2,
 			},
 		},
-		moistSs: []moistSensor{
-			moistSensor{
-				id:    "Moisture sensor 1",
-				pin:   3,
-				value: 0,
+		MoistSs: []MoistSensor{
+			MoistSensor{
+				Id:    "Moisture sensor 1",
+				Pin:   3,
+				Value: 0,
 			},
 		},
-		servos: []servo{
-			servo{
-				id:  "Servo pump 1",
-				pin: 4,
+		Servos: []Servo{
+			Servo{
+				Id:  "Servo pump 1",
+				Pin: 4,
 			},
 		},
-		tempSs: []tempSensor{
-			tempSensor{
-				id:    "Temp sensor 1",
-				pin:   5,
-				value: 0,
+		TempSs: []TempSensor{
+			TempSensor{
+				Id:    "Temp sensor 1",
+				Pin:   5,
+				Value: 0,
 			},
 		},
+		MoistMin: 15,
+		TempMin:  15,
+		TempMax:  20,
 	}
 	fmt.Println(g1)
-	fmt.Println(g1.leds[0].start.Format("Mon Jan 2 15:04 MST"))
-	fmt.Println(g1.leds[0].end.Format("Mon Jan 2 15:04 MST"))
-	err := seb.SaveToJSON("test", "test.json") //g1, "greenhouse.json")
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
+	// Save g1 to JSON
+	checkErr(seb.SaveToJSON(g1, "greenhouses.json"))
+}
 
+func checkErr(err error) {
+	if err != nil {
+		log.Println("Error:", err)
+	}
+	return
 }
