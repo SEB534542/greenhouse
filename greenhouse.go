@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"sync"
+
+	//"sync"
 	"time"
 
 	"github.com/SEB534542/seb"
@@ -21,7 +22,7 @@ import (
 // TODO: create go and locks
 
 // ghFile contains the json filename for storing the greenhouse config
-const ghFile = "greenhouse.json"
+const ghFile = "greenhouses.json"
 
 //var mu sync.Mutex
 
@@ -64,54 +65,83 @@ type TempSensor struct {
 type Box struct {
 	Id string
 	Pump
-	MoistSs  []*MoistSensor
-	MoistMin int
+	MoistSs    []*MoistSensor
+	MoistMin   int
+	MoistValue int
 }
 
 type Greenhouse struct {
-	Leds    []*Led
-	Servos  []*Servo
-	TempSs  []*TempSensor
-	Boxes   []*Box
-	TempMin int
-	TempMax int
+	Leds      []*Led
+	Servos    []*Servo
+	TempSs    []*TempSensor
+	Boxes     []*Box
+	TempMin   int
+	TempMax   int
+	TempValue int
 }
 
 func main() {
 	log.Println("--------Start of program--------")
 
 	// Loading greenhouse config
-	g := &Greenhouse{}
+	gx := []*Greenhouse{}
 	data, err := ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
-	checkErr(json.Unmarshal(data, g))
+	checkErr(json.Unmarshal(data, &gx))
 
-	//Resetting Start and End date to today for each LED
-	for _, l := range g.Leds {
-		l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
-		l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
-		log.Println(l.Start, l.End)
+	for _, g := range gx {
+		log.Println(g.Leds[0].Start)
+		//Resetting Start and End date to today for each LED
+		for _, l := range g.Leds {
+			l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
+			l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
+			log.Println(l.Start, l.End)
+		}
+		log.Println(len(g.Boxes), "box(es) configured")
+
+		// Monitor moisture for each box
+		for _, b := range g.Boxes {
+			b.monitorMoist()
+		}
+
+		// Monitor moisture for each LED
+		// for _, l := range g.Leds {
+		// 	l.monitorLed()
+		// }
+		// log.Println(g.Leds[0].Start)
+
+		// Monitor temperature for each sensor
+		g.monitorTemp()
 	}
-	log.Println(g)
-	log.Println(len(g.Boxes), "box(es) configured")
-
-	// Monitor moisture for each box
-	for _, b := range g.Boxes {
-		b.monitorMoist()
-	}
-
-	// Monitor moisture for each LED
-	for _, l := range g.Leds {
-		l.monitorLed()
-	}
-	log.Println(g.Leds[0].Start)
-
-	// Monitor temperature for each sensor
-	g.monitorTemp()
 }
 
 func (g *Greenhouse) monitorTemp() {
-	//values := []int
+	values := []int{}
+	for _, s := range g.TempSs {
+		s.getTemp()
+		values = append(values, s.Value)
+	}
+	g.TempValue = seb.CalcAverage(values...)
+	log.Printf("Average temperature: %v based on: %v", g.TempValue, values)
+
+	switch {
+	case g.TempValue > g.TempMax:
+		log.Println("Too hot, opening windows...")
+		// open windows
+	case g.TempValue < g.TempMin:
+		log.Println("Too cold, closing windows...")
+		//close windows
+	}
+
+}
+
+func (s *TempSensor) getTemp() {
+	// TODO: get Moist value from RPIO
+	// Seed the random number generator using the current time (nanoseconds since epoch)
+	rand.Seed(time.Now().UnixNano())
+
+	// Much harder to predict...but it is still possible if you know the day, and hour, minute...
+	s.Value = rand.Intn(1000)
 }
 
 // MonitorLED checks if LED should be enabled or disabled
@@ -131,7 +161,7 @@ func (l *Led) monitorLed() {
 			}
 			fallthrough
 		case time.Now().After(l.Start) && time.Now().Before(l.End):
-			log.Printf("Turning LED %s on for %s sec until %s", l.Id, time.Until(l.End).Seconds(), l.End.Format("02-01 15:04"))
+			log.Printf("Turning LED %s on for %v sec until %s", l.Id, time.Until(l.End).Seconds(), l.End.Format("02-01 15:04"))
 			l.switchLedOn()
 			for i := 0; i < int(time.Until(l.End).Seconds()); i++ {
 				time.Sleep(time.Second)
@@ -173,9 +203,9 @@ func (b *Box) monitorMoist() {
 		s.getMoist()
 		values = append(values, s.Value)
 	}
-	moist := seb.CalcAverage(values...)
-	log.Printf("Average moisture in box %v: %v based on: %v", b.Id, moist, values)
-	if moist <= b.MoistMin {
+	b.MoistValue = seb.CalcAverage(values...)
+	log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
+	if b.MoistValue <= b.MoistMin {
 		// TODO: start pump for t seconds
 		log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
 	}
