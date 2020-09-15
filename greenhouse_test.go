@@ -11,8 +11,8 @@ import (
 func TestMain(t *testing.T) {
 	const fname = "greenhouse.json"
 	g1 := &Greenhouse{
-		Leds: []Led{
-			Led{
+		Leds: []*Led{
+			{
 				Id:     "Led 1",
 				Pin:    1,
 				Start:  time.Now().Add(-60 * time.Minute),
@@ -20,34 +20,34 @@ func TestMain(t *testing.T) {
 				Active: false,
 			},
 		},
-		Servos: []Servo{
-			Servo{
+		Servos: []*Servo{
+			{
 				Id:  "Servo pump 1",
 				Pin: 2,
 			},
 		},
-		TempSs: []TempSensor{
-			TempSensor{
+		TempSs: []*TempSensor{
+			{
 				Id:    "Temp sensor 1",
 				Pin:   3,
 				Value: 0,
 			},
 		},
-		Boxes: []Box{
-			Box{
+		Boxes: []*Box{
+			{
 				Id: "Tomatoes",
 				Pump: Pump{
 					Id:  "Pump 1",
 					Pin: 4,
 					Dur: 5 * time.Second,
 				},
-				MoistSs: []MoistSensor{
-					MoistSensor{
+				MoistSs: []*MoistSensor{
+					{
 						Id:    "Moisture sensor 1",
 						Pin:   5,
 						Value: 0,
 					},
-					MoistSensor{
+					{
 						Id:    "Moisture sensor 2",
 						Pin:   6,
 						Value: 0,
