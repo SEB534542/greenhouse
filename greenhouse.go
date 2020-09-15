@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	//"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 
@@ -19,6 +21,8 @@ const ghFile = "greenhouses.json"
 const configFile = "config.json"
 
 var mu sync.Mutex
+var tpl *template.Template
+var fm = template.FuncMap{"fdateHM": hourMinute}
 
 var config = struct {
 	MoistCheck time.Duration
@@ -86,6 +90,11 @@ type Greenhouse struct {
 	TempValue int
 }
 
+func init() {
+	//Loading gohtml templates
+	tpl = template.Must(template.New("").Funcs(fm).ParseGlob("./templates/*"))
+}
+
 func main() {
 	log.Println("--------Start of program--------")
 
@@ -100,6 +109,7 @@ func main() {
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &gx))
 
+	// Launching all configured Greenhouses
 	for _, g := range gx {
 		//Resetting Start and End date to today for each LED
 		for _, l := range g.Leds {
@@ -107,7 +117,7 @@ func main() {
 			l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
 			log.Println("Reset dates to today:", l.Start, l.End)
 		}
-		log.Println(len(g.Boxes), "box(es) configured")
+		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 
 		// Monitor moisture for each box
 		for _, b := range g.Boxes {
@@ -122,9 +132,15 @@ func main() {
 		// Monitor temperature for each sensor
 		go g.monitorTemp()
 	}
-	log.Println("Start eternal loop")
-	for {
-	}
+
+	log.Println("Launching website...")
+	http.HandleFunc("/", handlerMain)
+	http.Handle("/favicon.ico", http.NotFoundHandler())
+	log.Fatal(http.ListenAndServe(":8081", nil))
+}
+
+func handlerMain(w http.ResponseWriter, req *http.Request) {
+	tpl.ExecuteTemplate(w, "index.gohtml", nil)
 }
 
 // MonitorTemp monitors the temperature in the Greenhouse
@@ -309,4 +325,8 @@ func checkErr(err error) {
 		log.Panic("Error:", err)
 	}
 	return
+}
+
+func hourMinute(t time.Time) string {
+	return t.Format("15:04")
 }
