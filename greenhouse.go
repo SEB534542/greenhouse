@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-
 	"sync"
 	"time"
 
@@ -15,16 +14,16 @@ import (
 
 // TODO: change all pins to actual RPIO pins
 
-// ghFile contains the json filename for storing the greenhouse config
+// ghFile contains the json filename for storing the greenhouse config.
 const ghFile = "greenhouses.json"
 const configFile = "config.json"
+
+var mu sync.Mutex
 
 var config = struct {
 	MoistCheck time.Duration
 	TempCheck  time.Duration
 }{}
-
-var mu sync.Mutex
 
 // A led represents the a LED light in the greenhouse
 type Led struct {
@@ -37,7 +36,7 @@ type Led struct {
 }
 
 // A pump represents the waterpump that can be activated through the Pin to
-// add water to the greenhouse
+// add water to the greenhouse.
 type Pump struct {
 	Id  string `json:"PumpId"`
 	Pin int
@@ -50,27 +49,32 @@ type MoistSensor struct {
 	Pin   int
 }
 
-// A servo represents a servo motor to open a window for ventilation
+// A servo represents a servo motor to open a window for ventilation.
 type Servo struct {
 	Id   string
 	Pin  int
 	Open bool
 }
 
+// A TempSensor represents a sensor that measures the temperature.
 type TempSensor struct {
 	Id    string
 	Value int
 	Pin   int
 }
 
+// A Box represents a greenbox with plants in a greenhouse,
+// with it's own water pump and moisture sensors.
 type Box struct {
-	Id string
-	Pump
+	Id         string
 	MoistSs    []*MoistSensor
 	MoistMin   int
 	MoistValue int
+	Pump
 }
 
+// A Greenhouse represents a greenhouse consisting of a/multiple box(es)
+// with plants, sensors and LED lights.
 type Greenhouse struct {
 	Id        string
 	Leds      []*Led
@@ -123,6 +127,8 @@ func main() {
 	}
 }
 
+// MonitorTemp monitors the temperature in the Greenhouse
+// and moves the servo motors accordinly to open or close the window(s).
 func (g *Greenhouse) monitorTemp() {
 	for {
 		values := []int{}
@@ -133,16 +139,18 @@ func (g *Greenhouse) monitorTemp() {
 		}
 		g.TempValue = seb.CalcAverage(values...)
 		log.Printf("Average temperature in %s: %v degrees based on: %v", g.Id, g.TempValue, values)
+
+		// Evaluating Temperature and moving window(s) accordingly
 		switch {
 		case g.TempValue > g.TempMax:
-			log.Println("Too hot, opening window(s)...")
+			log.Printf("Too hot, opening window(s) for greenbox %s...", g.Id)
 			for _, s := range g.Servos {
 				mu.Unlock()
 				s.unshut()
 				mu.Lock()
 			}
 		case g.TempValue < g.TempMin:
-			log.Println("Too cold, closing window(s)...")
+			log.Printf("Too cold, closing window(s) for greenbox %s...", g.Id)
 			for _, s := range g.Servos {
 				mu.Unlock()
 				s.shut()
@@ -159,26 +167,7 @@ func (g *Greenhouse) monitorTemp() {
 	}
 }
 
-func (s Servo) unshut() {
-	if s.Open == false {
-		s.move()
-	}
-}
-
-func (s Servo) shut() {
-	if s.Open == true {
-		s.move()
-	}
-}
-
-func (s Servo) move() {
-	if s.Open == true {
-		log.Println("Opening window...")
-	} else {
-		log.Println("Closing window...")
-	}
-}
-
+// GetTemp retrieves the temperature from the Temperature Sensor.
 func (s *TempSensor) getTemp() {
 	// TODO: get Moist value from RPIO
 	// Seed the random number generator using the current time (nanoseconds since epoch)
@@ -188,7 +177,31 @@ func (s *TempSensor) getTemp() {
 	s.Value = rand.Intn(30)
 }
 
-// MonitorLED checks if LED should be enabled or disabled
+// Unshut opens the window through the servo motor.
+func (s Servo) unshut() {
+	if s.Open == false {
+		s.move()
+	}
+}
+
+// Shut closes the window through the servo motor.
+func (s Servo) shut() {
+	if s.Open == true {
+		s.move()
+	}
+}
+
+// Move either opens or closes the window,
+// depending if the window is Open (true) or not (false).
+func (s Servo) move() {
+	if s.Open == true {
+		log.Println("Opening window...")
+	} else {
+		log.Println("Closing window...")
+	}
+}
+
+// MonitorLED checks if LED should be switched on or off.
 func (l *Led) monitorLed() {
 	for {
 		mu.Lock()
@@ -221,6 +234,7 @@ func (l *Led) monitorLed() {
 	}
 }
 
+// SwitchLedOn switches the LED on.
 func (l *Led) switchLedOn() {
 	if !l.Active {
 		l.switchLed()
@@ -228,6 +242,7 @@ func (l *Led) switchLedOn() {
 	return
 }
 
+// SwitchLedOn switches the LED off.
 func (l *Led) switchLedOff() {
 	if l.Active {
 		l.switchLed()
@@ -235,6 +250,8 @@ func (l *Led) switchLedOff() {
 	return
 }
 
+// SwitchLed switches the LED on or off,
+// depening if the LED is active (true) or not (false).
 func (l *Led) switchLed() {
 	if l.Active {
 		// TODO: turn LED off
@@ -247,7 +264,7 @@ func (l *Led) switchLed() {
 	}
 }
 
-// MonitorMoist monitors moisture and if insufficent enables the pump
+// MonitorMoist monitors moisture and if insufficent enables the waterpump
 func (b *Box) monitorMoist() {
 	for {
 		values := []int{}
@@ -274,6 +291,8 @@ func (b *Box) monitorMoist() {
 	}
 }
 
+// GetMoist gets retrieves the current moisture value from the sensor
+// and stores it in MoistSensor.Value
 func (s *MoistSensor) getMoist() {
 	// TODO: get Moist value from RPIO
 	// Seed the random number generator using the current time (nanoseconds since epoch)
@@ -283,6 +302,8 @@ func (s *MoistSensor) getMoist() {
 	s.Value = rand.Intn(1000)
 }
 
+// CheckErr evaluates err for errors (not nil)
+// and triggers a log.Panic containing the error
 func checkErr(err error) {
 	if err != nil {
 		log.Panic("Error:", err)
