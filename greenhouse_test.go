@@ -23,8 +23,9 @@ func TestMain(t *testing.T) {
 			},
 			Servos: []*Servo{
 				{
-					Id:  "Servo pump 1",
-					Pin: 2,
+					Id:   "Servo pump 1",
+					Pin:  2,
+					Open: false,
 				},
 			},
 			TempSs: []*TempSensor{

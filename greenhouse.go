@@ -52,8 +52,9 @@ type MoistSensor struct {
 
 // A servo represents a servo motor to open a window for ventilation
 type Servo struct {
-	Id  string
-	Pin int
+	Id   string
+	Pin  int
+	Open bool
 }
 
 type TempSensor struct {
@@ -125,11 +126,35 @@ func (g *Greenhouse) monitorTemp() {
 
 	switch {
 	case g.TempValue > g.TempMax:
-		log.Println("Too hot, opening windows...")
-		// open windows
+		log.Println("Too hot, opening window(s)...")
+		for _, s := range g.Servos {
+			s.unshut()
+		}
 	case g.TempValue < g.TempMin:
-		log.Println("Too cold, closing windows...")
-		//close windows
+		log.Println("Too cold, closing window(s)...")
+		for _, s := range g.Servos {
+			s.shut()
+		}
+	}
+}
+
+func (s Servo) unshut() {
+	if s.Open == false {
+		s.move()
+	}
+}
+
+func (s Servo) shut() {
+	if s.Open == true {
+		s.move()
+	}
+}
+
+func (s Servo) move() {
+	if s.Open == true {
+		log.Println("Opening window...")
+	} else {
+		log.Println("Closing window...")
 	}
 }
 
