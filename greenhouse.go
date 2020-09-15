@@ -23,6 +23,11 @@ import (
 
 // ghFile contains the json filename for storing the greenhouse config
 const ghFile = "greenhouses.json"
+const configFile = "config.json"
+
+var config = struct {
+	MoistCheck time.Duration
+}{}
 
 //var mu sync.Mutex
 
@@ -83,6 +88,11 @@ type Greenhouse struct {
 
 func main() {
 	log.Println("--------Start of program--------")
+
+	// Load general config
+	data, err := ioutil.ReadFile("./config/" + ghFile)
+	checkErr(err)
+	checkErr(json.Unmarshal(data, &config))
 
 	// Loading greenhouse config
 	gx := []*Greenhouse{}
@@ -221,6 +231,7 @@ func (l *Led) switchLed() {
 
 // MonitorMoist monitors moisture and if insufficent enables the pump
 func (b *Box) monitorMoist() {
+
 	values := []int{}
 	for _, s := range b.MoistSs {
 		s.getMoist()
