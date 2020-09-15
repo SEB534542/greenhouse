@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -16,6 +16,8 @@ import (
 // TODO: create interface for all sensors(?)
 
 // TODO: create a slice of greenhouses
+
+// TODO: decide on pointers or using pointer[index]
 
 // ghFile contains the json filename for storing the greenhouse config
 const ghFile = "greenhouse.json"
@@ -59,15 +61,15 @@ type TempSensor struct {
 type Box struct {
 	Id string
 	Pump
-	MoistSs  []MoistSensor
+	MoistSs  []*MoistSensor
 	MoistMin int
 }
 
 type Greenhouse struct {
-	Leds    []Led
-	Servos  []Servo
-	TempSs  []TempSensor
-	Boxes   []Box
+	Leds    []*Led
+	Servos  []*Servo
+	TempSs  []*TempSensor
+	Boxes   []*Box
 	TempMin float64
 	TempMax float64
 }
@@ -75,28 +77,39 @@ type Greenhouse struct {
 func main() {
 	log.Println("--------Start of program--------")
 
-	// Load greenhouse config
-	g1 := &Greenhouse{}
+	// Loading greenhouse config
+	g := &Greenhouse{}
 	data, err := ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
-	checkErr(json.Unmarshal(data, g1))
+	checkErr(json.Unmarshal(data, g))
 
-	log.Println("There is/are", len(g1.Boxes), " boxes configured")
-	for _, b := range g1.Boxes {
+	//Resetting LED Start and End to today
+	for i, _ := range g.Leds {
+		g.Leds[i].Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Leds[i].Start.Hour(), g.Leds[i].Start.Minute(), 0, 0, time.Now().Location())
+		g.Leds[i].End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Leds[i].End.Hour(), g.Leds[i].End.Minute(), 0, 0, time.Now().Location())
+		log.Println(g.Leds[i].Start, g.Leds[i].End)
+	}
+	log.Println(g)
+	log.Println(len(g.Boxes), "box(es) configured")
+	for _, b := range g.Boxes {
 		b.monitorMoist()
 	}
-	g1.monitorLed()
+	g.monitorLed()
+	log.Println(g.Leds[0].Start)
 }
 
 // MonitorLED checks if LED should be enabled or disabled
 func (g *Greenhouse) monitorLed() {
-	for _, l := range g.Leds {
-		if time.Now().After(l.End) {
-			l.switchLedOff()
-			// TODO: resetdays using seb
+	for i, _ := range g.Leds {
+		switch {
+		case time.Now().After(g.Leds[i].End):
+			g.Leds[i].switchLedOff()
+			// Resetting Start and End to tomorrow
+			g.Leds[i].Start = g.Leds[i].Start.AddDate(0, 0, 1)
+			g.Leds[i].End = g.Leds[i].End.AddDate(0, 0, 1)
 		}
+
 	}
-	return
 }
 
 func (l *Led) switchLedOn() {
@@ -129,10 +142,9 @@ func (b *Box) monitorMoist() {
 	for _, s := range b.MoistSs {
 		s.getMoist()
 		values = append(values, s.Value)
-		fmt.Print(s.Value, ", ")
 	}
 	moist := seb.CalcAverage(values...)
-	fmt.Println("Average=", moist)
+	log.Printf("Average moisture in box %v: %v based on: %v", b.Id, moist, values)
 	if moist <= b.MoistMin {
 		// TODO: start pump for t seconds
 		log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
