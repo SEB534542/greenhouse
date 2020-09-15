@@ -90,7 +90,6 @@ func main() {
 	checkErr(json.Unmarshal(data, &gx))
 
 	for _, g := range gx {
-		log.Println(g.Leds[0].Start)
 		//Resetting Start and End date to today for each LED
 		for _, l := range g.Leds {
 			l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
@@ -132,7 +131,6 @@ func (g *Greenhouse) monitorTemp() {
 		log.Println("Too cold, closing windows...")
 		//close windows
 	}
-
 }
 
 func (s *TempSensor) getTemp() {
@@ -141,7 +139,7 @@ func (s *TempSensor) getTemp() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Much harder to predict...but it is still possible if you know the day, and hour, minute...
-	s.Value = rand.Intn(1000)
+	s.Value = rand.Intn(30)
 }
 
 // MonitorLED checks if LED should be enabled or disabled
