@@ -12,6 +12,7 @@ func TestMain(t *testing.T) {
 	const fname1 = "greenhouses.json"
 	g1 := []*Greenhouse{
 		{
+			Id: "Main Greenhouse",
 			Leds: []*Led{
 				{
 					Id:     "Led 1",
@@ -67,7 +68,8 @@ func TestMain(t *testing.T) {
 	checkErr(seb.SaveToJSON(g1, "./config/"+fname1))
 
 	const fname2 = "config.json"
-	config.MoistCheck = time.Hour * 2
+	config.MoistCheck = time.Second * 12
+	config.TempCheck = time.Second * 10
 	fmt.Println(config)
 	checkErr(seb.SaveToJSON(config, "./config/"+fname2))
 }

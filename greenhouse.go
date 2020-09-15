@@ -7,7 +7,7 @@ import (
 	"log"
 	"math/rand"
 
-	//"sync"
+	"sync"
 	"time"
 
 	"github.com/SEB534542/seb"
@@ -15,21 +15,16 @@ import (
 
 // TODO: change all pins to actual RPIO pins
 
-// TODO: create interface for all sensors(?)
-
-// TODO: create a slice of greenhouses
-
-// TODO: create go and locks
-
 // ghFile contains the json filename for storing the greenhouse config
 const ghFile = "greenhouses.json"
 const configFile = "config.json"
 
 var config = struct {
 	MoistCheck time.Duration
+	TempCheck  time.Duration
 }{}
 
-//var mu sync.Mutex
+var mu sync.Mutex
 
 // A led represents the a LED light in the greenhouse
 type Led struct {
@@ -77,6 +72,7 @@ type Box struct {
 }
 
 type Greenhouse struct {
+	Id        string
 	Leds      []*Led
 	Servos    []*Servo
 	TempSs    []*TempSensor
@@ -93,7 +89,6 @@ func main() {
 	data, err := ioutil.ReadFile("./config/" + configFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &config))
-	log.Println(config)
 
 	// Loading greenhouse config
 	gx := []*Greenhouse{}
@@ -106,46 +101,61 @@ func main() {
 		for _, l := range g.Leds {
 			l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
 			l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
-			log.Println(l.Start, l.End)
+			log.Println("Reset dates to today:", l.Start, l.End)
 		}
 		log.Println(len(g.Boxes), "box(es) configured")
 
 		// Monitor moisture for each box
 		for _, b := range g.Boxes {
-			b.monitorMoist()
+			go b.monitorMoist()
 		}
 
 		// Monitor moisture for each LED
-		// for _, l := range g.Leds {
-		// 	l.monitorLed()
-		// }
-		// log.Println(g.Leds[0].Start)
+		for _, l := range g.Leds {
+			go l.monitorLed()
+		}
 
 		// Monitor temperature for each sensor
-		g.monitorTemp()
+		go g.monitorTemp()
+	}
+	log.Println("Start eternal loop")
+	for {
 	}
 }
 
 func (g *Greenhouse) monitorTemp() {
-	values := []int{}
-	for _, s := range g.TempSs {
-		s.getTemp()
-		values = append(values, s.Value)
-	}
-	g.TempValue = seb.CalcAverage(values...)
-	log.Printf("Average temperature: %v based on: %v", g.TempValue, values)
-
-	switch {
-	case g.TempValue > g.TempMax:
-		log.Println("Too hot, opening window(s)...")
-		for _, s := range g.Servos {
-			s.unshut()
+	for {
+		values := []int{}
+		mu.Lock()
+		for _, s := range g.TempSs {
+			s.getTemp()
+			values = append(values, s.Value)
 		}
-	case g.TempValue < g.TempMin:
-		log.Println("Too cold, closing window(s)...")
-		for _, s := range g.Servos {
-			s.shut()
+		g.TempValue = seb.CalcAverage(values...)
+		log.Printf("Average temperature in %s: %v degrees based on: %v", g.Id, g.TempValue, values)
+		switch {
+		case g.TempValue > g.TempMax:
+			log.Println("Too hot, opening window(s)...")
+			for _, s := range g.Servos {
+				mu.Unlock()
+				s.unshut()
+				mu.Lock()
+			}
+		case g.TempValue < g.TempMin:
+			log.Println("Too cold, closing window(s)...")
+			for _, s := range g.Servos {
+				mu.Unlock()
+				s.shut()
+				mu.Lock()
+			}
 		}
+		log.Printf("Snoozing monitorTemp for %v seconds", config.TempCheck.Seconds())
+		for i := 0; i < int(config.TempCheck.Seconds()); i++ {
+			mu.Unlock()
+			time.Sleep(time.Second)
+			mu.Lock()
+		}
+		mu.Unlock()
 	}
 }
 
@@ -181,6 +191,8 @@ func (s *TempSensor) getTemp() {
 // MonitorLED checks if LED should be enabled or disabled
 func (l *Led) monitorLed() {
 	for {
+		mu.Lock()
+		defer mu.Unlock()
 		switch {
 		case time.Now().After(l.End):
 			log.Println("Resetting Start and End to tomorrow for LED", l.Id)
@@ -191,16 +203,21 @@ func (l *Led) monitorLed() {
 			log.Printf("Turning LED %s off for %v sec until %s...", l.Id, int(time.Until(l.Start).Seconds()), l.Start.Format("02-01 15:04"))
 			l.switchLedOff()
 			for i := 0; i < int(time.Until(l.Start).Seconds()); i++ {
+				mu.Unlock()
 				time.Sleep(time.Second)
+				mu.Lock()
 			}
 			fallthrough
 		case time.Now().After(l.Start) && time.Now().Before(l.End):
-			log.Printf("Turning LED %s on for %v sec until %s", l.Id, time.Until(l.End).Seconds(), l.End.Format("02-01 15:04"))
+			log.Printf("Turning LED %s on for %v sec until %s", l.Id, int(time.Until(l.End).Seconds()), l.End.Format("02-01 15:04"))
 			l.switchLedOn()
 			for i := 0; i < int(time.Until(l.End).Seconds()); i++ {
+				mu.Unlock()
 				time.Sleep(time.Second)
+				mu.Lock()
 			}
 		}
+		mu.Unlock()
 	}
 }
 
@@ -221,30 +238,40 @@ func (l *Led) switchLedOff() {
 func (l *Led) switchLed() {
 	if l.Active {
 		// TODO: turn LED off
-		log.Printf("Turning Led %s off...", l.Id)
+		//log.Printf("Turning Led %s off...", l.Id)
 		l.Active = false
 	} else {
 		// TODO: turn LED on
-		log.Printf("Turning Led %s on...", l.Id)
+		//log.Printf("Turning Led %s on...", l.Id)
 		l.Active = true
 	}
 }
 
 // MonitorMoist monitors moisture and if insufficent enables the pump
 func (b *Box) monitorMoist() {
-
-	values := []int{}
-	for _, s := range b.MoistSs {
-		s.getMoist()
-		values = append(values, s.Value)
+	for {
+		values := []int{}
+		mu.Lock()
+		for _, s := range b.MoistSs {
+			s.getMoist()
+			values = append(values, s.Value)
+		}
+		b.MoistValue = seb.CalcAverage(values...)
+		log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
+		if b.MoistValue <= b.MoistMin {
+			mu.Unlock()
+			// TODO: start pump for t seconds
+			mu.Lock()
+			log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
+		}
+		log.Printf("Snoozing MonitorMoist for %v seconds", config.MoistCheck.Seconds())
+		for i := 0; i < int(config.MoistCheck.Seconds()); i++ {
+			mu.Unlock()
+			time.Sleep(time.Second)
+			mu.Lock()
+		}
+		mu.Unlock()
 	}
-	b.MoistValue = seb.CalcAverage(values...)
-	log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
-	if b.MoistValue <= b.MoistMin {
-		// TODO: start pump for t seconds
-		log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
-	}
-	// TODO: add sleep to next day (variable)
 }
 
 func (s *MoistSensor) getMoist() {
