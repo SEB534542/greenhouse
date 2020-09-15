@@ -90,13 +90,14 @@ func main() {
 	log.Println("--------Start of program--------")
 
 	// Load general config
-	data, err := ioutil.ReadFile("./config/" + ghFile)
+	data, err := ioutil.ReadFile("./config/" + configFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &config))
+	log.Println(config)
 
 	// Loading greenhouse config
 	gx := []*Greenhouse{}
-	data, err := ioutil.ReadFile("./config/" + ghFile)
+	data, err = ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &gx))
 
