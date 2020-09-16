@@ -7,7 +7,59 @@
 
 <h1>Greenbox Dashboard</h1>
 
-<p>Hello world</p>
+{{range .}}
+  <h2>Greenhouse: {{.Id}}</h2>
+  <ul>
+    <li>Current temp: {{.TempValue}}⁰C</li>
+    <ul>
+      {{range .TempSs}}
+        <li>Tempsensor: {{.Id}}</li>
+        <ul>
+          <li>Value: {{.Value}}</li>
+          <li>Pin: {{.Pin}}</li>
+        </ul>
+      {{end}}
+    </ul>
+    <li>Min temp: {{.TempMin}}⁰C</li>
+    <li>Max temp: {{.TempMax}}⁰C</li>
+    {{range .Servos}}
+      <li>Servo: {{.Id}}</li>
+      <ul>
+        <li>Pin: {{.Pin}}</li>
+        <li>Open: {{.Open}}</li>
+      </ul>
+    {{end}}
+    
+    {{range .Boxes}}
+      <li>Box: {{.Id}}</li>
+      <ul>
+        <li>MoistMin: {{.MoistMin}}</li>
+        <li>MoistValue: {{.MoistValue}}</li>
+          <li>Pump: {{.Pump.Id}}</li>
+          <ul>
+            <li>Pin: {{.Pin}}</li>
+            <li>Duration: {{.Dur}}</li>
+          </ul>
+        {{range .MoistSs}}
+          <li>MoistSensor: {{.Id}}<li>
+          <ul>
+            <li>Value: {{.Value}}</li>
+            <li>Pin: {{.Pin}}</li>
+          </ul>
+        {{end}}
+      </ul>
+    {{end}}
+    {{range .Leds}}
+      <li>LED: {{.Id}}</li>
+      <ul>
+        <li>Active: {{.Active}}</li>
+        <li>Pin: {{.Pin}}</li>
+        <li>Start: {{.Start}}</li>
+        <li>End: {{.End}}</li>
+      </ul>
+    {{end}}
+  </ul>
+{{end}}
 
 </body>
 </html>

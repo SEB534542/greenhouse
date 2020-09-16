@@ -23,6 +23,7 @@ const configFile = "config.json"
 var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute}
+var gx = []*Greenhouse{}
 
 var config = struct {
 	MoistCheck time.Duration
@@ -104,7 +105,6 @@ func main() {
 	checkErr(json.Unmarshal(data, &config))
 
 	// Loading greenhouse config
-	gx := []*Greenhouse{}
 	data, err = ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &gx))
@@ -119,18 +119,18 @@ func main() {
 		}
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 
-		// Monitor moisture for each box
-		for _, b := range g.Boxes {
-			go b.monitorMoist()
-		}
+		// // Monitor moisture for each box
+		// for _, b := range g.Boxes {
+		// 	go b.monitorMoist()
+		// }
 
-		// Monitor moisture for each LED
-		for _, l := range g.Leds {
-			go l.monitorLed()
-		}
+		// // Monitor moisture for each LED
+		// for _, l := range g.Leds {
+		// 	go l.monitorLed()
+		// }
 
-		// Monitor temperature for each sensor
-		go g.monitorTemp()
+		// // Monitor temperature for each sensor
+		// go g.monitorTemp()
 	}
 
 	log.Println("Launching website...")
@@ -140,7 +140,7 @@ func main() {
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
-	tpl.ExecuteTemplate(w, "index.gohtml", nil)
+	tpl.ExecuteTemplate(w, "index.gohtml", gx)
 }
 
 // MonitorTemp monitors the temperature in the Greenhouse
