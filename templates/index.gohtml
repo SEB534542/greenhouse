@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8" http-equiv="refresh" content="{{.RefreshRate}}" />
 <title>Go Greenbox</title>
 </head>
 <body>
 
 <h1>Greenbox Dashboard</h1>
 
-{{range .}}
+<p>Last updated: {{.Time}} <i>(updates every {{.RefreshRate}} seconds automatically)</i></p>
+
+{{range .Gx}}
   <h2>Greenhouse: {{.Id}}</h2>
   <ul>
     <li>Current temp: {{.TempValue}}⁰C</li>
@@ -35,11 +38,6 @@
       <ul>
         <li>MoistMin: {{.MoistMin}}</li>
         <li>MoistValue: {{.MoistValue}}</li>
-          <li>Pump: {{.Pump.Id}}</li>
-          <ul>
-            <li>Pin: {{.Pin}}</li>
-            <li>Duration: {{.Dur}}</li>
-          </ul>
         {{range .MoistSs}}
           <li>MoistSensor: {{.Id}}<li>
           <ul>
@@ -47,6 +45,11 @@
             <li>Pin: {{.Pin}}</li>
           </ul>
         {{end}}
+        <li>Pump: {{.Pump.Id}}</li>
+        <ul>
+          <li>Pin: {{.Pin}}</li>
+          <li>Duration: {{.Dur}}</li>
+        </ul>
       </ul>
     {{end}}
     {{range .Leds}}

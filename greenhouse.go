@@ -26,8 +26,9 @@ var fm = template.FuncMap{"fdateHM": hourMinute}
 var gx = []*Greenhouse{}
 
 var config = struct {
-	MoistCheck time.Duration
-	TempCheck  time.Duration
+	MoistCheck  time.Duration
+	TempCheck   time.Duration
+	RefreshRate time.Duration
 }{}
 
 // A led represents the a LED light in the greenhouse
@@ -119,18 +120,18 @@ func main() {
 		}
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 
-		// // Monitor moisture for each box
-		// for _, b := range g.Boxes {
-		// 	go b.monitorMoist()
-		// }
+		// Monitor moisture for each box
+		for _, b := range g.Boxes {
+			go b.monitorMoist()
+		}
 
-		// // Monitor moisture for each LED
-		// for _, l := range g.Leds {
-		// 	go l.monitorLed()
-		// }
+		// Monitor moisture for each LED
+		for _, l := range g.Leds {
+			go l.monitorLed()
+		}
 
-		// // Monitor temperature for each sensor
-		// go g.monitorTemp()
+		// Monitor temperature for each sensor
+		go g.monitorTemp()
 	}
 
 	log.Println("Launching website...")
@@ -140,7 +141,16 @@ func main() {
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
-	tpl.ExecuteTemplate(w, "index.gohtml", gx)
+	data := struct {
+		Time        string
+		RefreshRate int
+		Gx          []*Greenhouse
+	}{
+		time.Now().Format("_2 Jan 06 15:04:05"),
+		int(config.RefreshRate.Seconds()),
+		gx,
+	}
+	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
 
 // MonitorTemp monitors the temperature in the Greenhouse

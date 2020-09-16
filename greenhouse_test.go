@@ -70,6 +70,7 @@ func TestMain(t *testing.T) {
 	const fname2 = "config.json"
 	config.MoistCheck = time.Second * 12
 	config.TempCheck = time.Second * 10
+	config.RefreshRate = time.Second * 10
 	fmt.Println(config)
 	checkErr(seb.SaveToJSON(config, "./config/"+fname2))
 }
