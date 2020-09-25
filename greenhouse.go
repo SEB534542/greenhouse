@@ -71,6 +71,7 @@ type TempSensor struct {
 type Box struct {
 	Id         string
 	MoistSs    []*MoistSensor
+	Leds       []*Led
 	MoistMin   int
 	MoistValue int
 	Pump
@@ -80,7 +81,6 @@ type Box struct {
 // with plants, sensors and LED lights.
 type Greenhouse struct {
 	Id        string
-	Leds      []*Led
 	Servos    []*Servo
 	TempSs    []*TempSensor
 	Boxes     []*Box
@@ -109,27 +109,21 @@ func main() {
 
 	// Launch all configured Greenhouses
 	for _, g := range gx {
-		//Resetting Start and End date to today for each LED
-		for _, l := range g.Leds {
-			l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
-			l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
-			log.Println("Reset dates to today:", l.Start, l.End)
-		}
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
-
-		// Monitor moisture for each box
+		// For each box...
 		for _, b := range g.Boxes {
+			// ... Monitor moisture
 			go b.monitorMoist()
-		}
-
-		// Monitor moisture for each LED
-		for _, l := range g.Leds {
-			go l.monitorLed()
+			// ... Reset start/end time and monitor light for each LED
+			for _, l := range b.Leds {
+				l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
+				l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
+				go l.monitorLed()
+			}
 		}
 
 		// Monitor temperature for all sensors in the Greenhouse
 		go g.monitorTemp()
-
 	}
 	log.Println("Launching website...")
 	http.HandleFunc("/", handlerMain)
