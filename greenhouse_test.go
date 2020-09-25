@@ -10,6 +10,8 @@ import (
 
 func TestMain(t *testing.T) {
 	const fname1 = "greenhouses.json"
+	const fname2 = "config.json"
+
 	g1 := []*Greenhouse{
 		{
 			Id: "Main Greenhouse",
@@ -60,17 +62,15 @@ func TestMain(t *testing.T) {
 				},
 			},
 			TempMin: 15,
-			TempMax: 20,
+			TempMax: 25,
 		},
 	}
-	fmt.Println(g1)
 	// Save g1 to JSON
 	checkErr(seb.SaveToJSON(g1, "./config/"+fname1))
 
-	const fname2 = "config.json"
+	// Create config file
 	config.MoistCheck = time.Second * 12
 	config.TempCheck = time.Second * 10
 	config.RefreshRate = time.Second * 10
-	fmt.Println(config)
 	checkErr(seb.SaveToJSON(config, "./config/"+fname2))
 }

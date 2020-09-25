@@ -38,13 +38,15 @@
       <ul>
         <li>MoistMin: {{.MoistMin}}</li>
         <li>MoistValue: {{.MoistValue}}</li>
-        {{range .MoistSs}}
-          <li>MoistSensor: {{.Id}}<li>
-          <ul>
-            <li>Value: {{.Value}}</li>
-            <li>Pin: {{.Pin}}</li>
-          </ul>
-        {{end}}
+        <ul>
+          {{range .MoistSs}}
+            <li>MoistSensor: {{.Id}}</li>
+            <ul>
+              <li>Value: {{.Value}}</li>
+              <li>Pin: {{.Pin}}</li>
+            </ul>
+          {{end}}
+        </ul>
         <li>Pump: {{.Pump.Id}}</li>
         <ul>
           <li>Pin: {{.Pin}}</li>

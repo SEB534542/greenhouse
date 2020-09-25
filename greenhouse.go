@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/SEB534542/seb"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -26,14 +24,13 @@ var fm = template.FuncMap{"fdateHM": hourMinute}
 var gx = []*Greenhouse{}
 
 var config = struct {
-	MoistCheck  time.Duration
-	TempCheck   time.Duration
-	RefreshRate time.Duration
+	TempCheck   time.Duration // Frequency for checking moisture
+	MoistCheck  time.Duration // Frequency for checking temperature
+	RefreshRate time.Duration // Refresh rate for website
 }{}
 
-// A led represents the a LED light in the greenhouse
+// An Led represents the a LED light in the greenhouse
 type Led struct {
-	// Name specifies the identifier (name or a number) of the led
 	Id     string // e.g. "Main" or "01"
 	Active bool
 	Pin    int
@@ -105,12 +102,12 @@ func main() {
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &config))
 
-	// Loading greenhouse config
+	// Load greenhouse config
 	data, err = ioutil.ReadFile("./config/" + ghFile)
 	checkErr(err)
 	checkErr(json.Unmarshal(data, &gx))
 
-	// Launching all configured Greenhouses
+	// Launch all configured Greenhouses
 	for _, g := range gx {
 		//Resetting Start and End date to today for each LED
 		for _, l := range g.Leds {
@@ -130,10 +127,10 @@ func main() {
 			go l.monitorLed()
 		}
 
-		// Monitor temperature for each sensor
+		// Monitor temperature for all sensors in the Greenhouse
 		go g.monitorTemp()
-	}
 
+	}
 	log.Println("Launching website...")
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
@@ -163,7 +160,7 @@ func (g *Greenhouse) monitorTemp() {
 			s.getTemp()
 			values = append(values, s.Value)
 		}
-		g.TempValue = seb.CalcAverage(values...)
+		g.TempValue = calcAverage(values...)
 		log.Printf("Average temperature in %s: %v degrees based on: %v", g.Id, g.TempValue, values)
 
 		// Evaluating Temperature and moving window(s) accordingly
@@ -231,7 +228,6 @@ func (s Servo) move() {
 func (l *Led) monitorLed() {
 	for {
 		mu.Lock()
-		defer mu.Unlock()
 		switch {
 		case time.Now().After(l.End):
 			log.Println("Resetting Start and End to tomorrow for LED", l.Id)
@@ -290,7 +286,7 @@ func (l *Led) switchLed() {
 	}
 }
 
-// MonitorMoist monitors moisture and if insufficent enables the waterpump
+// MonitorMoist monitors moisture and if insufficent enables the waterpump.
 func (b *Box) monitorMoist() {
 	for {
 		values := []int{}
@@ -299,13 +295,13 @@ func (b *Box) monitorMoist() {
 			s.getMoist()
 			values = append(values, s.Value)
 		}
-		b.MoistValue = seb.CalcAverage(values...)
+		b.MoistValue = calcAverage(values...)
 		log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
 		if b.MoistValue <= b.MoistMin {
 			mu.Unlock()
 			// TODO: start pump for t seconds
 			mu.Lock()
-			log.Printf("Pump %s started for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
+			log.Printf("Pump %s has run for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
 		}
 		log.Printf("Snoozing MonitorMoist for %v seconds", config.MoistCheck.Seconds())
 		for i := 0; i < int(config.MoistCheck.Seconds()); i++ {
@@ -318,7 +314,7 @@ func (b *Box) monitorMoist() {
 }
 
 // GetMoist gets retrieves the current moisture value from the sensor
-// and stores it in MoistSensor.Value
+// and stores it in MoistSensor.Value.
 func (s *MoistSensor) getMoist() {
 	// TODO: get Moist value from RPIO
 	// Seed the random number generator using the current time (nanoseconds since epoch)
@@ -329,7 +325,7 @@ func (s *MoistSensor) getMoist() {
 }
 
 // CheckErr evaluates err for errors (not nil)
-// and triggers a log.Panic containing the error
+// and triggers a log.Panic containing the error.
 func checkErr(err error) {
 	if err != nil {
 		log.Panic("Error:", err)
@@ -337,6 +333,18 @@ func checkErr(err error) {
 	return
 }
 
+// HourMinute returns a variable of time.Time as a string in format "15:04"
+// This function is used for displaying time on a gohtml webpage.
 func hourMinute(t time.Time) string {
 	return t.Format("15:04")
+}
+
+// CalcAverage takes a variadic parameter of integers and
+// returns the average integer.
+func calcAverage(xi ...int) int {
+	total := 0
+	for _, v := range xi {
+		total = total + v
+	}
+	return total / len(xi)
 }

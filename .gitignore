@@ -50,7 +50,7 @@ builds/**/images/*
 *.pem
 *.xxjson
 
-# log and data
+# logs and data
 *.txt
 *.csv
 *.log
