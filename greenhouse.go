@@ -129,11 +129,11 @@ func main() {
 	}
 
 	// General config
-	err := loadConfig("./config/"+configFile, &config)
+	err := loadConfig("./"+configFolder+"/"+configFile, &config)
 	checkErr(err)
 
 	// Greenhouse config
-	err = loadConfig("./config/"+ghFile, &gx)
+	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
 
 	// Launch all configured Greenhouses
 	log.Printf("There is/are %v greenhouse(s) configured", len(gx))
