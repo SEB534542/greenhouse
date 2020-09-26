@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SEB534542/seb"
+	"github.com/stianeikeland/go-rpio"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -41,7 +42,7 @@ var config = struct {
 type Led struct {
 	Id     string // e.g. "Main" or "01"
 	Active bool
-	Pin    int
+	Pin    rpio.Pin
 	Start  time.Time
 	End    time.Time
 }
@@ -50,20 +51,20 @@ type Led struct {
 // add water to the greenhouse.
 type Pump struct {
 	Id  string `json:"PumpId"`
-	Pin int
+	Pin rpio.Pin
 	Dur time.Duration
 }
 
 type MoistSensor struct {
 	Id    string
 	Value int
-	Pin   int
+	Pin   rpio.Pin
 }
 
 // A servo represents a servo motor to open a window for ventilation.
 type Servo struct {
 	Id   string
-	Pin  int
+	Pin  rpio.Pin
 	Open bool
 }
 
@@ -71,7 +72,7 @@ type Servo struct {
 type TempSensor struct {
 	Id    string
 	Value int
-	Pin   int
+	Pin   rpio.Pin
 }
 
 // A Box represents a greenbox with plants in a greenhouse,
@@ -105,6 +106,14 @@ func init() {
 	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
 		os.Mkdir(configFolder, 4096)
 	}
+
+	// Connecting to rpio Pins
+	rpio.Open()
+	defer rpio.Close()
+	//	for _, pin := range []rpio.Pin{s1.pinDown, s1.pinUp} {
+	//		pin.Output()
+	//		pin.High()
+	//	}
 }
 
 func main() {
