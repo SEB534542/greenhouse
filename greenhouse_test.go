@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -9,21 +9,12 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	const fname1 = "greenhouses.json"
-	const fname2 = "config.json"
+	const fname1 = "./config/test_greenhouses.json"
+	const fname2 = "./config/test_config_test.json"
 
 	g1 := []*Greenhouse{
 		{
 			Id: "Main Greenhouse",
-			Leds: []*Led{
-				{
-					Id:     "Led 1",
-					Pin:    1,
-					Start:  time.Now().Add(-60 * time.Minute),
-					End:    time.Now().Add(60 * time.Minute),
-					Active: false,
-				},
-			},
 			Servos: []*Servo{
 				{
 					Id:   "Servo pump 1",
@@ -58,6 +49,15 @@ func TestMain(t *testing.T) {
 							Value: 0,
 						},
 					},
+					Leds: []*Led{
+						{
+							Id:     "Led 1",
+							Pin:    1,
+							Start:  time.Now().Add(-60 * time.Minute),
+							End:    time.Now().Add(60 * time.Minute),
+							Active: false,
+						},
+					},
 					MoistMin: 1000,
 				},
 			},
@@ -66,11 +66,15 @@ func TestMain(t *testing.T) {
 		},
 	}
 	// Save g1 to JSON
-	checkErr(seb.SaveToJSON(g1, "./config/"+fname1))
+	checkErr(seb.SaveToJSON(g1, fname1))
 
 	// Create config file
 	config.MoistCheck = time.Second * 12
 	config.TempCheck = time.Second * 10
 	config.RefreshRate = time.Second * 10
-	checkErr(seb.SaveToJSON(config, "./config/"+fname2))
+	checkErr(seb.SaveToJSON(config, fname2))
+
+	// Delete files
+	os.Remove(fname1)
+	os.Remove(fname2)
 }
