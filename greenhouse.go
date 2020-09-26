@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/SEB534542/seb"
-	"github.com/stianeikeland/go-rpio"
+	"github.com/stianeikeland/go-rpio/v4"
 )
 
 // TODO: change all pins to actual RPIO pins

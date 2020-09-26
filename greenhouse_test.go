@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/SEB534542/seb"
-	"github.com/stianeikeland/go-rpio"
+	"github.com/stianeikeland/go-rpio/v4"
 )
 
 var _ = fmt.Printf // For debugging; delete when done.
