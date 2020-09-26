@@ -2,14 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	//"fmt"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/SEB534542/seb"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -27,7 +30,11 @@ var config = struct {
 	TempCheck   time.Duration // Frequency for checking moisture
 	MoistCheck  time.Duration // Frequency for checking temperature
 	RefreshRate time.Duration // Refresh rate for website
-}{}
+}{
+	time.Second * 10, // Default value
+	time.Second * 10, // Default value
+	time.Second * 10, // Default value
+}
 
 // An Led represents the a LED light in the greenhouse
 type Led struct {
@@ -97,17 +104,33 @@ func init() {
 func main() {
 	log.Println("--------Start of program--------")
 
-	// Load general config
-	data, err := ioutil.ReadFile("./config/" + configFile)
-	checkErr(err)
-	checkErr(json.Unmarshal(data, &config))
+	// Load config
+	loadConfig := func(fname string, i interface{}) error {
+		if _, err := os.Stat(fname); os.IsNotExist(err) {
+			log.Printf("File '%v' does not exist, creating blank", fname)
+			seb.SaveToJSON(i, fname)
+		} else {
+			data, err := ioutil.ReadFile(fname)
+			if err != nil {
+				return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
+			}
+			err = json.Unmarshal(data, i)
+			if err != nil {
+				return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
+			}
+		}
+		return nil
+	}
 
-	// Load greenhouse config
-	data, err = ioutil.ReadFile("./config/" + ghFile)
+	// General config
+	err := loadConfig("./config/"+configFile, &config)
 	checkErr(err)
-	checkErr(json.Unmarshal(data, &gx))
+
+	// Greenhouse config
+	err = loadConfig("./config/"+ghFile, &gx)
 
 	// Launch all configured Greenhouses
+	log.Printf("There is/are %v greenhouse(s) configured", len(gx))
 	for _, g := range gx {
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 		// For each box...
@@ -125,6 +148,7 @@ func main() {
 		// Monitor temperature for all sensors in the Greenhouse
 		go g.monitorTemp()
 	}
+
 	log.Println("Launching website...")
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
