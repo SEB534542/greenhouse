@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/SEB534542/seb"
 )
+
+var _ = fmt.Printf // For debugging; delete when done.
 
 func TestMain(t *testing.T) {
 	const fname1 = "./config/test_greenhouses.json"

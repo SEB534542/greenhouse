@@ -20,6 +20,7 @@ import (
 // ghFile contains the json filename for storing the greenhouse config.
 const ghFile = "greenhouses.json"
 const configFile = "config.json"
+const configFolder = "config"
 
 var mu sync.Mutex
 var tpl *template.Template
@@ -99,6 +100,11 @@ type Greenhouse struct {
 func init() {
 	//Loading gohtml templates
 	tpl = template.Must(template.New("").Funcs(fm).ParseGlob("./templates/*"))
+
+	// Check if config folder exists
+	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
+		os.Mkdir(configFolder, 4096)
+	}
 }
 
 func main() {
