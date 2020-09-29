@@ -106,14 +106,6 @@ func init() {
 	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
 		os.Mkdir(configFolder, 4096)
 	}
-
-	// Connecting to rpio Pins
-	rpio.Open()
-	defer rpio.Close()
-	//	for _, pin := range []rpio.Pin{s1.pinDown, s1.pinUp} {
-	//		pin.Output()
-	//		pin.High()
-	//	}
 }
 
 func main() {
@@ -136,13 +128,19 @@ func main() {
 		}
 		return nil
 	}
-
 	// General config
 	err := loadConfig("./"+configFolder+"/"+configFile, &config)
 	checkErr(err)
-
 	// Greenhouse config
 	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
+
+	// Connecting to rpio Pins
+	rpio.Open()
+	defer rpio.Close()
+	//	for _, pin := range []rpio.Pin{s1.pinDown, s1.pinUp} {
+	//		pin.Output()
+	//		pin.High()
+	//	}
 
 	// Launch all configured Greenhouses
 	log.Printf("There is/are %v greenhouse(s) configured", len(gx))
