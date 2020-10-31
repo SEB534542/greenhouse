@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/SEB534542/seb"
-	"github.com/stianeikeland/go-rpio/v4"
+	"github.com/stianeikeland/go-rpio"
 )
 
 // TODO: change all pins to actual RPIO pins
@@ -102,7 +102,7 @@ func init() {
 	//Loading gohtml templates
 	tpl = template.Must(template.New("").Funcs(fm).ParseGlob("./templates/*"))
 
-	// Check if config folder exists
+	// Check if config folder exists, else create
 	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
 		os.Mkdir(configFolder, 4096)
 	}
