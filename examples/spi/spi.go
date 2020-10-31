@@ -10,11 +10,10 @@ import (
 )
 
 func main() {
-	//jdev2()
-	stian()
+	spi()
 }
 
-func stian() {
+func spi() {
 	var channel int
 	if len(os.Args) < 2 {
 		channel = 1

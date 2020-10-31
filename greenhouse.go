@@ -18,9 +18,14 @@ import (
 
 // TODO: change all pins to actual RPIO pins
 
-// ghFile contains the json filename for storing the greenhouse config.
+// ghFile contains the json filename for storing the greenhouses and the components.
 const ghFile = "greenhouses.json"
+
+// configFile contains the json filename for storing the configuration of the program itself,
+// such as tresholds, mail, etc.
 const configFile = "config.json"
+
+// configFolder is the folder where the config files (ghFile and configFile) are stored
 const configFolder = "config"
 
 var mu sync.Mutex
@@ -29,8 +34,8 @@ var fm = template.FuncMap{"fdateHM": hourMinute}
 var gx = []*Greenhouse{}
 
 var config = struct {
-	TempCheck   time.Duration // Frequency for checking moisture
-	MoistCheck  time.Duration // Frequency for checking temperature
+	TempCheck   time.Duration // Frequency for checking temperature
+	MoistCheck  time.Duration // Frequency for checking moisture
 	RefreshRate time.Duration // Refresh rate for website
 }{
 	time.Second * 10, // Default value
@@ -38,7 +43,7 @@ var config = struct {
 	time.Second * 10, // Default value
 }
 
-// An Led represents the a LED light in the greenhouse
+// Led represents a LED light in the greenhouse
 type Led struct {
 	Id     string // e.g. "Main" or "01"
 	Active bool
@@ -47,7 +52,7 @@ type Led struct {
 	End    time.Time
 }
 
-// A pump represents the waterpump that can be activated through the Pin to
+// Pump represents the waterpump that can be activated through the Pin to
 // add water to the greenhouse.
 type Pump struct {
 	Id  string `json:"PumpId"`
@@ -56,9 +61,9 @@ type Pump struct {
 }
 
 type MoistSensor struct {
-	Id    string
-	Value int
-	Pin   rpio.Pin
+	Id      string
+	Value   int
+	Channel int
 }
 
 // A servo represents a servo motor to open a window for ventilation.
@@ -137,10 +142,6 @@ func main() {
 	// Connecting to rpio Pins
 	rpio.Open()
 	defer rpio.Close()
-	//	for _, pin := range []rpio.Pin{s1.pinDown, s1.pinUp} {
-	//		pin.Output()
-	//		pin.High()
-	//	}
 
 	// Launch all configured Greenhouses
 	log.Printf("There is/are %v greenhouse(s) configured", len(gx))
@@ -148,23 +149,26 @@ func main() {
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 		// For each box...
 		for _, b := range g.Boxes {
-			// ... Monitor moisture
-			go b.monitorMoist()
-			// ... Reset start/end time and monitor light for each LED
+			if len(b.MoistSs) != 0 {
+				// Monitor moisture
+				go b.monitorMoist()
+			}
+			// Reset start/end time and monitor light for each LED
 			for _, l := range b.Leds {
 				l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
 				l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
 				go l.monitorLed()
 			}
 		}
-
 		// Monitor temperature for all sensors in the Greenhouse
-		go g.monitorTemp()
+		if len(g.TempSs) != 0 {
+			go g.monitorTemp()
+		}
 	}
-
 	log.Println("Launching website...")
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
@@ -181,6 +185,12 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
 
+func handlerStop(w http.ResponseWriter, req *http.Request) {
+	// TODO: rewrite or remove
+	log.Println("Executing a hard stop...")
+	os.Exit(3)
+}
+
 // MonitorTemp monitors the temperature in the Greenhouse
 // and moves the servo motors accordinly to open or close the window(s).
 func (g *Greenhouse) monitorTemp() {
@@ -191,6 +201,7 @@ func (g *Greenhouse) monitorTemp() {
 			s.getTemp()
 			values = append(values, s.Value)
 		}
+		// TODO: add error handling in case value is zero
 		g.TempValue = calcAverage(values...)
 		log.Printf("Average temperature in %s: %v degrees based on: %v", g.Id, g.TempValue, values)
 
@@ -329,10 +340,11 @@ func (b *Box) monitorMoist() {
 		b.MoistValue = calcAverage(values...)
 		log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
 		if b.MoistValue <= b.MoistMin {
+			// TODO: print it is too low(!)
 			mu.Unlock()
 			// TODO: start pump for t seconds
 			mu.Lock()
-			log.Printf("Pump %s has run for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
+			// log.Printf("Pump %s has run for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
 		}
 		log.Printf("Snoozing MonitorMoist for %v seconds", config.MoistCheck.Seconds())
 		for i := 0; i < int(config.MoistCheck.Seconds()); i++ {
