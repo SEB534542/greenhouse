@@ -84,7 +84,7 @@ func TestMain(t *testing.T) {
 	os.Remove(fname2)
 }
 
-func TestEmpty(t *testing.T) {
+func TestEmptyGreenhouse(t *testing.T) {
 	const fname1 = "./config/test_greenhouses.json"
 
 	g1 := []*Greenhouse{
@@ -118,5 +118,5 @@ func TestEmpty(t *testing.T) {
 	checkErr(seb.SaveToJSON(g1, fname1))
 
 	// Delete files
-	//os.Remove(fname1)
+	os.Remove(fname1)
 }
