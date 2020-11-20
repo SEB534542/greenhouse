@@ -99,7 +99,6 @@ func main() {
 		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
 		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
 		g.Led.Pin.Output()
-		//g.Led.Pin.High()
 		go func() {
 			for {
 				g.Led.monitorLed()
@@ -123,6 +122,7 @@ func main() {
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/toggleled", handlerToggleLed)
+	http.HandleFunc("/soilcheck", handlerSoilCheck)
 	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
@@ -144,13 +144,16 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerToggleLed(w http.ResponseWriter, req *http.Request) {
-	// TODO: rewrite or remove
 	g.Led.toggleLed()
 	http.Redirect(w, req, "/", http.StatusFound)
 }
 
+func handlerSoilCheck(w http.ResponseWriter, req *http.Request) {
+	g.monitorMoist()
+	http.Redirect(w, req, "/", http.StatusFound)
+}
+
 func handlerStop(w http.ResponseWriter, req *http.Request) {
-	// TODO: rewrite or remove
 	g.Led.switchLedOff()
 	rpio.Close()
 	log.Println("Shutting down...")
