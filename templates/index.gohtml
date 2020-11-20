@@ -16,9 +16,12 @@
 <h2>Soil</h2>
 <ul>
 	<li>Soil was last measured at {{fdateHM .MoistTime}} and is: {{.MoistValue}}</li>
+	{{range .MoistSs}}
+	<li>{{.Id}}: {{.Value}} ({{fdateHM .Time}})</li>
+	{{end}}
 </ul>
 
-<h2>Soil statistics</h2>
+<h2>Soil Statistics</h2>
 <table>
 <tr><td><b>Date</b></td><td><b>Sensor</b></td><td><b>Round</b></td><td><b>Value</b></td></tr>
 {{range .Stats}}
