@@ -248,16 +248,19 @@ func (g *Greenhouse) monitorMoist() {
 	var result uint16
 	mu.Lock()
 	for _, s := range g.MoistSs {
-		for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
 			buffer[0] = 0x01
 			buffer[1] = byte(8+s.Channel) << 4
 			buffer[2] = 0x00
 			rpio.SpiExchange(buffer) // buffer is populated with received data
-			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
-			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(i), fmt.Sprint(result)}})
+			result = uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
+			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(j), fmt.Sprint(result)}})
 			time.Sleep(time.Millisecond)
 		}
 		s.Value = int(result)
+	}
+	for _, s := range g.MoistSs {
+		log.Printf("%v: %v", s.Id, s.Value)
 	}
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
