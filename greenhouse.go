@@ -31,19 +31,13 @@ const configFolder = "config"
 var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute}
-var gx = []*Greenhouse{}
+var g = *Greenhouse{}
 
-var config = struct {
-	TempCheck   time.Duration // Frequency for checking temperature
-	MoistCheck  time.Duration // Frequency for checking moisture
+type config = struct {
 	RefreshRate time.Duration // Refresh rate for website
-}{
-	time.Second * 10, // Default value
-	time.Second * 10, // Default value
-	time.Second * 10, // Default value
 }
 
-// Led represents a LED light in the greenhouse
+// Led represents a LED light in the greenhouse.
 type Led struct {
 	Id     string // e.g. "Main" or "01"
 	Active bool
@@ -52,55 +46,22 @@ type Led struct {
 	End    time.Time
 }
 
-// Pump represents the waterpump that can be activated through the Pin to
-// add water to the greenhouse.
-type Pump struct {
-	Id  string `json:"PumpId"`
-	Pin rpio.Pin
-	Dur time.Duration
-}
-
+// A MoistSensor represents a sensor that measures the soil moisture.
 type MoistSensor struct {
 	Id      string
 	Value   int
 	Channel int
 }
 
-// A servo represents a servo motor to open a window for ventilation.
-type Servo struct {
-	Id   string
-	Pin  rpio.Pin
-	Open bool
-}
-
-// A TempSensor represents a sensor that measures the temperature.
-type TempSensor struct {
-	Id    string
-	Value int
-	Pin   rpio.Pin
-}
-
-// A Box represents a greenbox with plants in a greenhouse,
-// with it's own water pump and moisture sensors.
-type Box struct {
-	Id         string
-	MoistSs    []*MoistSensor
-	Leds       []*Led
-	MoistMin   int
-	MoistValue int
-	Pump
-}
-
-// A Greenhouse represents a greenhouse consisting of a/multiple box(es)
-// with plants, sensors and LED lights.
+// A Greenhouse represents a greenhouse with plants, moisture sensors and LED lights.
 type Greenhouse struct {
-	Id        string
-	Servos    []*Servo
-	TempSs    []*TempSensor
-	Boxes     []*Box
-	TempMin   int
-	TempMax   int
-	TempValue int
+	Id          string
+	MoistSs     []*MoistSensor
+	Leds        []*Led
+	MoistMin    int           // Minimal value for triggering
+	MoistValue  int           // Last measured value
+	MoistTiming time.Time     // Timing when last measured
+	MoistFreq   time.Duration // Frequency for checking moisture
 }
 
 func init() {
@@ -116,27 +77,11 @@ func init() {
 func main() {
 	log.Println("--------Start of program--------")
 
-	// Load config
-	loadConfig := func(fname string, i interface{}) error {
-		if _, err := os.Stat(fname); os.IsNotExist(err) {
-			log.Printf("File '%v' does not exist, creating blank", fname)
-			seb.SaveToJSON(i, fname)
-		} else {
-			data, err := ioutil.ReadFile(fname)
-			if err != nil {
-				return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
-			}
-			err = json.Unmarshal(data, i)
-			if err != nil {
-				return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
-			}
-		}
-		return nil
-	}
-	// General config
+	// Load general config, including webserver
 	err := loadConfig("./"+configFolder+"/"+configFile, &config)
 	checkErr(err)
-	// Greenhouse config
+
+	// Load greenhouse
 	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
 
 	// Connecting to rpio Pins
@@ -165,11 +110,13 @@ func main() {
 			go g.monitorTemp()
 		}
 	}
-	log.Println("Launching website...")
-	http.HandleFunc("/", handlerMain)
-	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.HandleFunc("/stop", handlerStop)
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	for {
+	}
+	// log.Println("Launching website...")
+	// http.HandleFunc("/", handlerMain)
+	// http.Handle("/favicon.ico", http.NotFoundHandler())
+	// http.HandleFunc("/stop", handlerStop)
+	// log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
@@ -230,6 +177,25 @@ func (g *Greenhouse) monitorTemp() {
 		}
 		mu.Unlock()
 	}
+}
+
+// loadConfig loads configuration from the given fname (including folder)
+// into i interface.
+func loadConfig(fname string, i interface{}) error {
+	if _, err := os.Stat(fname); os.IsNotExist(err) {
+		log.Printf("File '%v' does not exist, creating blank", fname)
+		seb.SaveToJSON(i, fname)
+	} else {
+		data, err := ioutil.ReadFile(fname)
+		if err != nil {
+			return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
+		}
+		err = json.Unmarshal(data, i)
+		if err != nil {
+			return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
+		}
+	}
+	return nil
 }
 
 // GetTemp retrieves the temperature from the Temperature Sensor.
