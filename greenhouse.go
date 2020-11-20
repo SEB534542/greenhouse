@@ -19,7 +19,7 @@ import (
 // TODO: change all pins to actual RPIO pins
 
 // ghFile contains the json filename for storing the greenhouses and the components.
-const ghFile = "greenhouses.json"
+const ghFile = "greenhouse.json"
 
 // configFile contains the json filename for storing the configuration of the program itself,
 // such as tresholds, mail, etc.
@@ -94,7 +94,11 @@ func main() {
 		// Reset start/end time and monitor light for  LED
 		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
 		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
-		go g.Led.monitorLed()
+		go func() {
+			for {
+				g.Led.monitorLed()
+			}
+		}()
 	}
 
 	//	if len(b.MoistSs) != 0 {
@@ -104,6 +108,7 @@ func main() {
 
 	for {
 	}
+
 	// log.Println("Launching website...")
 	// http.HandleFunc("/", handlerMain)
 	// http.Handle("/favicon.ico", http.NotFoundHandler())
@@ -151,64 +156,46 @@ func loadConfig(fname string, i interface{}) error {
 
 // MonitorLED checks if LED should be switched on or off.
 func (l *Led) monitorLed() {
-	for {
-		mu.Lock()
-		switch {
-		case time.Now().After(l.End):
-			log.Println("Resetting Start and End to tomorrow for LED", l.Id)
-			l.Start = l.Start.AddDate(0, 0, 1)
-			l.End = l.End.AddDate(0, 0, 1)
-			fallthrough
-		case time.Now().Before(l.Start):
-			log.Printf("Turning LED %s off for %v sec until %s...", l.Id, int(time.Until(l.Start).Seconds()), l.Start.Format("02-01 15:04"))
-			l.switchLedOff()
-			for i := 0; i < int(time.Until(l.Start).Seconds()); i++ {
-				mu.Unlock()
-				time.Sleep(time.Second)
-				mu.Lock()
-			}
-			fallthrough
-		case time.Now().After(l.Start) && time.Now().Before(l.End):
-			log.Printf("Turning LED %s on for %v sec until %s", l.Id, int(time.Until(l.End).Seconds()), l.End.Format("02-01 15:04"))
-			l.switchLedOn()
-			for i := 0; i < int(time.Until(l.End).Seconds()); i++ {
-				mu.Unlock()
-				time.Sleep(time.Second)
-				mu.Lock()
-			}
+	mu.Lock()
+	switch {
+	case time.Now().After(l.End):
+		log.Println("Resetting Start and End to tomorrow for LED", l.Id)
+		l.Start = l.Start.AddDate(0, 0, 1)
+		l.End = l.End.AddDate(0, 0, 1)
+		fallthrough
+	case time.Now().Before(l.Start):
+		log.Printf("Turning LED %s off and snoozing for %v sec until %s...", l.Id, int(time.Until(l.Start).Seconds())+1, l.Start.Format("02-01 15:04:05"))
+		l.switchLedOff()
+		for i := 0; i <= int(time.Until(l.Start).Seconds())+5; i++ {
+			mu.Unlock()
+			time.Sleep(time.Second)
+			mu.Lock()
 		}
-		mu.Unlock()
+		fallthrough
+	case time.Now().After(l.Start) && time.Now().Before(l.End):
+		log.Printf("Turning LED %s on and snoozing for %v sec until %s...", l.Id, int(time.Until(l.End).Seconds())+1, l.End.Format("02-01 15:04:05"))
+		l.switchLedOn()
+		for i := 0; i <= int(time.Until(l.End).Seconds())+5; i++ {
+			mu.Unlock()
+			time.Sleep(time.Second)
+			mu.Lock()
+		}
 	}
+	mu.Unlock()
 }
 
-// SwitchLedOn switches the LED on.
+// SwitchLedOn switches LED on.
 func (l *Led) switchLedOn() {
-	if !l.Active {
-		l.switchLed()
-	}
+	l.Pin.Write(rpio.Low)
+	l.Active = true
 	return
 }
 
-// SwitchLedOn switches the LED off.
+// SwitchLedOn switches LED off.
 func (l *Led) switchLedOff() {
-	if l.Active {
-		l.switchLed()
-	}
+	l.Pin.Write(rpio.High)
+	l.Active = false
 	return
-}
-
-// SwitchLed switches the LED on or off,
-// depening if the LED is active (true) or not (false).
-func (l *Led) switchLed() {
-	if l.Active {
-		// TODO: turn LED off
-		//log.Printf("Turning Led %s off...", l.Id)
-		l.Active = false
-	} else {
-		// TODO: turn LED on
-		//log.Printf("Turning Led %s on...", l.Id)
-		l.Active = true
-	}
 }
 
 // MonitorMoist monitors moisture and if insufficent enables the waterpump.

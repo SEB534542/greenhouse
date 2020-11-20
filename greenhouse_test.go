@@ -59,8 +59,36 @@ func TestSaveConfig(t *testing.T) {
 	os.Remove(fname)
 }
 
-func TestReadState(t *testing.T) {
+//func TestReadState(t *testing.T) {
+//	ps := 23
+//	rpio.Open()
+//	defer rpio.Close()
+//	fmt.Println("Pin", ps, "state is", rpio.Pin(ps).Read())
+//	if rpio.Pin(ps).Read() == rpio.Low {
+//		// Low = 0 means it it is on, so turning it off by setting it to high
+//		rpio.Pin(ps).Write(rpio.High)
+//		time.Sleep(time.Second)
+//		rpio.Pin(ps).Toggle()
+//	} else if rpio.Pin(ps).Read() == rpio.High {
+//		// High = 1 means it it is off, so turning it on by setting it to low
+//		rpio.Pin(ps).Write(rpio.Low)
+//		time.Sleep(time.Second)
+//		rpio.Pin(ps).Toggle()
+//	}
+//}
+
+func TestMonitorLed(t *testing.T) {
 	rpio.Open()
 	defer rpio.Close()
-	fmt.Println(rpio.Pin(23).Read())
+	l := &Led{
+		Id:    "Main Led",
+		Pin:   rpio.Pin(23),
+		Start: time.Now().Add(time.Second * 2),
+		End:   time.Now().Add(time.Second * 4),
+	}
+	state := l.Pin.Read()
+	l.monitorLed()
+	go l.monitorLed()
+	time.Sleep(time.Second * 3)
+	l.Pin.Write(state)
 }
