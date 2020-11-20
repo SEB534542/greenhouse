@@ -123,11 +123,11 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 	data := struct {
 		Time        string
 		RefreshRate int
-		Gx          []*Greenhouse
+		G           *Greenhouse
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
 		int(config.RefreshRate.Seconds()),
-		gx,
+		g,
 	}
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
@@ -136,47 +136,6 @@ func handlerStop(w http.ResponseWriter, req *http.Request) {
 	// TODO: rewrite or remove
 	log.Println("Executing a hard stop...")
 	os.Exit(3)
-}
-
-// MonitorTemp monitors the temperature in the Greenhouse
-// and moves the servo motors accordinly to open or close the window(s).
-func (g *Greenhouse) monitorTemp() {
-	for {
-		values := []int{}
-		mu.Lock()
-		for _, s := range g.TempSs {
-			s.getTemp()
-			values = append(values, s.Value)
-		}
-		// TODO: add error handling in case value is zero
-		g.TempValue = calcAverage(values...)
-		log.Printf("Average temperature in %s: %v degrees based on: %v", g.Id, g.TempValue, values)
-
-		// Evaluating Temperature and moving window(s) accordingly
-		switch {
-		case g.TempValue > g.TempMax:
-			log.Printf("Too hot, opening window(s) for greenbox %s...", g.Id)
-			for _, s := range g.Servos {
-				mu.Unlock()
-				s.unshut()
-				mu.Lock()
-			}
-		case g.TempValue < g.TempMin:
-			log.Printf("Too cold, closing window(s) for greenbox %s...", g.Id)
-			for _, s := range g.Servos {
-				mu.Unlock()
-				s.shut()
-				mu.Lock()
-			}
-		}
-		log.Printf("Snoozing monitorTemp for %v seconds", config.TempCheck.Seconds())
-		for i := 0; i < int(config.TempCheck.Seconds()); i++ {
-			mu.Unlock()
-			time.Sleep(time.Second)
-			mu.Lock()
-		}
-		mu.Unlock()
-	}
 }
 
 // loadConfig loads configuration from the given fname (including folder)
@@ -196,40 +155,6 @@ func loadConfig(fname string, i interface{}) error {
 		}
 	}
 	return nil
-}
-
-// GetTemp retrieves the temperature from the Temperature Sensor.
-func (s *TempSensor) getTemp() {
-	// TODO: get Moist value from RPIO
-	// Seed the random number generator using the current time (nanoseconds since epoch)
-	rand.Seed(time.Now().UnixNano())
-
-	// Much harder to predict...but it is still possible if you know the day, and hour, minute...
-	s.Value = rand.Intn(30)
-}
-
-// Unshut opens the window through the servo motor.
-func (s Servo) unshut() {
-	if s.Open == false {
-		s.move()
-	}
-}
-
-// Shut closes the window through the servo motor.
-func (s Servo) shut() {
-	if s.Open == true {
-		s.move()
-	}
-}
-
-// Move either opens or closes the window,
-// depending if the window is Open (true) or not (false).
-func (s Servo) move() {
-	if s.Open == true {
-		log.Println("Opening window...")
-	} else {
-		log.Println("Closing window...")
-	}
 }
 
 // MonitorLED checks if LED should be switched on or off.
@@ -295,25 +220,25 @@ func (l *Led) switchLed() {
 }
 
 // MonitorMoist monitors moisture and if insufficent enables the waterpump.
-func (b *Box) monitorMoist() {
+func (g *Greenhouse) monitorMoist() {
 	for {
 		values := []int{}
 		mu.Lock()
-		for _, s := range b.MoistSs {
+		for _, s := range g.MoistSs {
 			s.getMoist()
 			values = append(values, s.Value)
 		}
-		b.MoistValue = calcAverage(values...)
-		log.Printf("Average moisture in box %v: %v based on: %v", b.Id, b.MoistValue, values)
-		if b.MoistValue <= b.MoistMin {
+		g.MoistValue = calcAverage(values...)
+		log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
+		if g.MoistValue <= b.MoistMin {
 			// TODO: print it is too low(!)
 			mu.Unlock()
 			// TODO: start pump for t seconds
 			mu.Lock()
-			// log.Printf("Pump %s has run for %s in Box %s\n", b.Pump.Id, b.Pump.Dur, b.Id)
+			// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
 		}
-		log.Printf("Snoozing MonitorMoist for %v seconds", config.MoistCheck.Seconds())
-		for i := 0; i < int(config.MoistCheck.Seconds()); i++ {
+		log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
+		for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
 			mu.Unlock()
 			time.Sleep(time.Second)
 			mu.Lock()
