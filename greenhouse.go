@@ -31,7 +31,7 @@ const configFolder = "config"
 var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute}
-var g = *Greenhouse{}
+var g = &Greenhouse{}
 
 type config = struct {
 	RefreshRate time.Duration // Refresh rate for website
@@ -57,7 +57,7 @@ type MoistSensor struct {
 type Greenhouse struct {
 	Id          string
 	MoistSs     []*MoistSensor
-	Leds        []*Led
+	Led         *Led
 	MoistMin    int           // Minimal value for triggering
 	MoistValue  int           // Last measured value
 	MoistTiming time.Time     // Timing when last measured
@@ -78,18 +78,17 @@ func main() {
 	log.Println("--------Start of program--------")
 
 	// Load general config, including webserver
-	err := loadConfig("./"+configFolder+"/"+configFile, &config)
+	err := loadConfig("./"+configFolder+"/"+configFile, &c)
 	checkErr(err)
 
 	// Load greenhouse
-	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
+	err = loadConfig("./"+configFolder+"/"+ghFile, &g)
 
 	// Connecting to rpio Pins
 	rpio.Open()
 	defer rpio.Close()
 
-	// Launch all configured Greenhouses
-	log.Printf("There is/are %v greenhouse(s) configured", len(gx))
+	// Launch Greenhouse
 	for _, g := range gx {
 		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
 		// For each box...

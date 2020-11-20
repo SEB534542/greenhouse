@@ -14,13 +14,13 @@ var _ os.File      // For debugging; delete when done.
 func TestloadConfig(t *testing.T) {
 	err := loadConfig("./"+configFolder+"/"+configFile, &config)
 	if err != nil {
-		log.Printf("Error while loading ", err)
+		fmt.Printf("Error while loading ", err)
 	}
 
 	// Load greenhouse
 	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
 	if err != nil {
-		log.Printf("Error while loading ", err)
+		fmt.Printf("Error while loading ", err)
 	}
 
 }
