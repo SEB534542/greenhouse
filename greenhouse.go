@@ -98,6 +98,8 @@ func main() {
 		// Reset start/end time and monitor light for  LED
 		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
 		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
+		g.Led.Pin.Output()
+		//g.Led.Pin.High()
 		go func() {
 			for {
 				g.Led.monitorLed()
@@ -110,7 +112,7 @@ func main() {
 		go func() {
 			for {
 				g.monitorMoist()
-				for i := 0; i <= 21600; i++ {
+				for i := 0; i <= int(g.MoistFreq.Seconds()); i++ {
 					time.Sleep(time.Second)
 				}
 			}
@@ -262,9 +264,13 @@ func (g *Greenhouse) monitorMoist() {
 		}
 		s.Value = int(result)
 	}
+	var values []int
 	for _, s := range g.MoistSs {
+		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
 	}
+	g.MoistValue = calcAverage(values...)
+	g.MoistTiming = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
 }
