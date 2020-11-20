@@ -27,7 +27,10 @@
 <p>Last updated: {{.Time}} <i>(updates every {{.RefreshRate}} automatically)</i></p>
 
 <h2>Led {{.Led.Id}}</h2>
-<ul><li>Led {{.Led.Id}} is: {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}</li></ul>
+<ul>
+<li>Led {{.Led.Id}} is: {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}</li>
+<li>Led is activated between {{fdateHM .Led.Start}} and {{fdateHM .Led.End}}</li>
+</ul>
 
 <a href="/toggleled" class="button buttonGreen">Switch Light</a>
 <a href="/stop" class="button buttonBlue">Stop</a>
