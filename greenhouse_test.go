@@ -119,12 +119,3 @@ func TestSaveConfig(t *testing.T) {
 //		}}
 //	g.monitorMoist()
 //}
-
-func TestHandlerMain(t *testing.T) {
-	c.RefreshRate = 30
-	log.Println("Launching website...")
-	http.HandleFunc("/", handlerMain)
-	http.Handle("/favicon.ico", http.NotFoundHandler())
-	// http.HandleFunc("/stop", handlerStop)
-	log.Fatal(http.ListenAndServe(":8081", nil))
-}

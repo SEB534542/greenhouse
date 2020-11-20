@@ -89,42 +89,42 @@ func main() {
 	// Load greenhouse
 	err = loadConfig("./"+configFolder+"/"+ghFile, &g)
 
-	// Connecting to rpio Pins
-	rpio.Open()
-	defer rpio.Close()
+	//	// Connecting to rpio Pins
+	//	rpio.Open()
+	//	defer rpio.Close()
 
-	// Launch Greenhouse
-	if g.Led != nil {
-		// Reset start/end time and monitor light for  LED
-		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
-		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
-		go func() {
-			for {
-				g.Led.monitorLed()
-			}
-		}()
-	}
+	//	// Launch Greenhouse
+	//	if g.Led != nil {
+	//		// Reset start/end time and monitor light for  LED
+	//		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
+	//		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
+	//		go func() {
+	//			for {
+	//				g.Led.monitorLed()
+	//			}
+	//		}()
+	//	}
 
-	// Monitor moisture
-	if len(g.MoistSs) != 0 {
-		go func() {
-			for {
-				g.monitorMoist()
-				for i := 0; i <= 21600; i++ {
-					time.Sleep(time.Second)
-				}
-			}
-		}()
-	}
+	//	// Monitor moisture
+	//	if len(g.MoistSs) != 0 {
+	//		go func() {
+	//			for {
+	//				g.monitorMoist()
+	//				for i := 0; i <= 21600; i++ {
+	//					time.Sleep(time.Second)
+	//				}
+	//			}
+	//		}()
+	//	}
 
-	for {
-	}
+	//	for {
+	//	}
 
-	// log.Println("Launching website...")
-	// http.HandleFunc("/", handlerMain)
-	// http.Handle("/favicon.ico", http.NotFoundHandler())
-	// http.HandleFunc("/stop", handlerStop)
-	// log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Println("Launching website...")
+	http.HandleFunc("/", handlerMain)
+	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/stop", handlerStop)
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
