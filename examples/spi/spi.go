@@ -10,7 +10,38 @@ import (
 )
 
 func main() {
-	spi()
+	//spi()
+	readSpi()
+}
+
+func readSpi() {
+	if err := rpio.Open(); err != nil {
+		panic(err)
+	}
+	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
+		panic(err)
+	}
+	rpio.SpiChipSelect(0) // Select CE0 slave
+	buffer := make([]byte, 3)
+
+	channels := []int{0, 1, 2}
+
+	for _, channel := range channels {
+		for i := 0; i < 5; i++ {
+			buffer[0] = 0x01
+			buffer[1] = byte(8+channel) << 4
+			buffer[2] = 0x00
+
+			rpio.SpiExchange(buffer) // buffer is populated with received data
+
+			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
+			fmt.Printf("%v\t%v\t%v\n", channel, i+1, result)
+			time.Sleep(time.Second)
+		}
+		fmt.Println()
+	}
+	rpio.SpiEnd(rpio.Spi0)
+	rpio.Close()
 }
 
 func spi() {

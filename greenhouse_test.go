@@ -54,6 +54,11 @@ func TestSaveConfig(t *testing.T) {
 			Start: time.Date(2020, time.November, 20, 8, 30, 0, 0, time.Local),
 			End:   time.Date(2020, time.November, 20, 21, 45, 0, 0, time.Local),
 		},
+		MoistSs: []*MoistSensor{
+			{Id: "Left", Channel: 2},
+			{Id: "Middle", Channel: 1},
+			{Id: "Right", Channel: 0},
+		},
 	}
 	seb.SaveToJSON(&g1, fname)
 	os.Remove(fname)
@@ -77,18 +82,31 @@ func TestSaveConfig(t *testing.T) {
 //	}
 //}
 
-func TestMonitorLed(t *testing.T) {
-	rpio.Open()
-	defer rpio.Close()
-	l := &Led{
-		Id:    "Main Led",
-		Pin:   rpio.Pin(23),
-		Start: time.Now().Add(time.Second * 2),
-		End:   time.Now().Add(time.Second * 4),
-	}
-	state := l.Pin.Read()
-	l.monitorLed()
-	go l.monitorLed()
-	time.Sleep(time.Second * 3)
-	l.Pin.Write(state)
+//func TestMonitorLed(t *testing.T) {
+//	rpio.Open()
+//	defer rpio.Close()
+//	l := &Led{
+//		Id:    "Main Led",
+//		Pin:   rpio.Pin(23),
+//		Start: time.Now().Add(time.Second * 2),
+//		End:   time.Now().Add(time.Second * 4),
+//	}
+//	state := l.Pin.Read()
+//	l.monitorLed()
+//	go l.monitorLed()
+//	time.Sleep(time.Second * 3)
+//	l.Pin.Write(state)
+//}
+
+//func TestMoistFile(t *testing.T) {
+//	channel := 0
+//	i := 1
+//	var v uint16 = 15674
+//	appendCSV(moistFile, [][]string{
+//		{fmt.Sprint(channel), time.Now().Format("02-01-2006 15:04:05"), fmt.Sprint(i), fmt.Sprint(v)}})
+//}
+
+func TestGetMoist(t *testing.T) {
+	s := &MoistSensor{Id: "Left", Channel: 2}
+	s.getMoist()
 }

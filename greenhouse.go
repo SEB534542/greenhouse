@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"sync"
@@ -27,6 +27,9 @@ const configFile = "config.json"
 
 // configFolder is the folder where the config files (ghFile and configFile) are stored
 const configFolder = "config"
+
+// moistFile is the file where moisture data is stored
+const moistFile = "moisture_stats.csv"
 
 var mu sync.Mutex
 var tpl *template.Template
@@ -50,15 +53,16 @@ type Led struct {
 // A MoistSensor represents a sensor that measures the soil moisture.
 type MoistSensor struct {
 	Id      string
-	Value   int
 	Channel int
+	Value   int
+	Time    time.Time
 }
 
 // A Greenhouse represents a greenhouse with plants, moisture sensors and LED lights.
 type Greenhouse struct {
 	Id          string
-	MoistSs     []*MoistSensor
 	Led         *Led
+	MoistSs     []*MoistSensor
 	MoistMin    int           // Minimal value for triggering
 	MoistValue  int           // Last measured value
 	MoistTiming time.Time     // Timing when last measured
@@ -101,10 +105,14 @@ func main() {
 		}()
 	}
 
-	//	if len(b.MoistSs) != 0 {
-	//		// Monitor moisture
-	//		go b.monitorMoist()
-	//	}
+	// Monitor moisture
+	if len(g.MoistSs) != 0 {
+		go func() {
+			for {
+				g.monitorMoist()
+			}
+		}()
+	}
 
 	for {
 	}
@@ -199,42 +207,72 @@ func (l *Led) switchLedOff() {
 }
 
 // MonitorMoist monitors moisture and if insufficent enables the waterpump.
+//func (g *Greenhouse) monitorMoist() {
+//	values := []int{}
+//	mu.Lock()
+//	for _, s := range g.MoistSs {
+//		s.getMoist()
+//		values = append(values, s.Value)
+//	}
+//	g.MoistValue = calcAverage(values...)
+//	log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
+//	if g.MoistValue <= b.MoistMin {
+//		// TODO: print it is too low(!)
+//		mu.Unlock()
+//		// TODO: start pump for t seconds
+//		mu.Lock()
+//		// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
+//	}
+//	log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
+//	for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
+//		mu.Unlock()
+//		time.Sleep(time.Second)
+//		mu.Lock()
+//	}
+//	mu.Unlock()
+//}
+
+// MonitorMoist monitors moisture and if insufficent enables the waterpump.
 func (g *Greenhouse) monitorMoist() {
-	for {
-		//		values := []int{}
-		//		mu.Lock()
-		//		for _, s := range g.MoistSs {
-		//			s.getMoist()
-		//			values = append(values, s.Value)
-		//		}
-		//		g.MoistValue = calcAverage(values...)
-		//		log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
-		//		if g.MoistValue <= b.MoistMin {
-		//			// TODO: print it is too low(!)
-		//			mu.Unlock()
-		//			// TODO: start pump for t seconds
-		//			mu.Lock()
-		//			// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
-		//		}
-		//		log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
-		//		for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
-		//			mu.Unlock()
-		//			time.Sleep(time.Second)
-		//			mu.Lock()
-		//		}
-		//		mu.Unlock()
+	mu.Lock()
+	for _, s := range g.MoistSs {
+		s.getMoist()
 	}
+	mu.Unlock()
 }
 
 // GetMoist gets retrieves the current moisture value from the sensor
 // and stores it in MoistSensor.Value.
 func (s *MoistSensor) getMoist() {
-	// TODO: get Moist value from RPIO
-	// Seed the random number generator using the current time (nanoseconds since epoch)
-	rand.Seed(time.Now().UnixNano())
 
-	// Much harder to predict...but it is still possible if you know the day, and hour, minute...
-	s.Value = rand.Intn(1000)
+	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
+		s.Time = time.Now()
+		s.Value = 0
+		log.Panic(err)
+	}
+	rpio.SpiChipSelect(0) // Select CE0 slave
+	buffer := make([]byte, 3)
+
+	channels := []int{0, 1, 2}
+
+	var result uint16
+
+	for _, channel := range channels {
+		for i := 0; i < 5; i++ {
+			buffer[0] = 0x01
+			buffer[1] = byte(8+channel) << 4
+			buffer[2] = 0x00
+
+			rpio.SpiExchange(buffer) // buffer is populated with received data
+
+			result = uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
+			appendCSV(moistFile, [][]string{{fmt.Sprint(s.Channel), time.Now().Format("02-01-2006 15:04:05"), fmt.Sprint(i), fmt.Sprint(s.Value)}})
+			time.Sleep(time.Millisecond)
+		}
+	}
+	s.Value = int(result)
+	rpio.SpiEnd(rpio.Spi0)
+	return
 }
 
 // CheckErr evaluates err for errors (not nil)
@@ -260,4 +298,43 @@ func calcAverage(xi ...int) int {
 		total = total + v
 	}
 	return total / len(xi)
+}
+
+func readCSV(file string) [][]string {
+	// Read the file
+	f, err := os.Open(file)
+	if err != nil {
+		f, err := os.Create(file)
+		if err != nil {
+			log.Fatal("Unable to create csv", err)
+		}
+		f.Close()
+		return [][]string{}
+	}
+	defer f.Close()
+	r := csv.NewReader(f)
+	lines, err := r.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return lines
+}
+
+func appendCSV(file string, newLines [][]string) {
+
+	// Get current data
+	lines := readCSV(file)
+
+	// Add new lines
+	lines = append(lines, newLines...)
+
+	// Write the file
+	f, err := os.Create(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w := csv.NewWriter(f)
+	if err = w.WriteAll(lines); err != nil {
+		log.Fatal(err)
+	}
 }
