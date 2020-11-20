@@ -112,7 +112,7 @@ func main() {
 		go func() {
 			for {
 				g.monitorMoist()
-				for i := 0; i <= 21600; i++ {
+				for i := 0; i <= int(g.MoistFreq.Seconds()); i++ {
 					time.Sleep(time.Second)
 				}
 			}
@@ -261,9 +261,13 @@ func (g *Greenhouse) monitorMoist() {
 		}
 		s.Value = int(result)
 	}
+	var values []int
 	for _, s := range g.MoistSs {
+		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
 	}
+	g.MoistValue = calcAverage(values...)
+	g.MoistTiming = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
 }
