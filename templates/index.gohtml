@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" http-equiv="refresh" content="{{fsec .RefreshRate}}" />
+<style>
+.button {
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.buttonGreen {background-color: #4CAF50;} /* Green */
+.buttonBlue {background-color: #008CBA;} /* Blue */
+</style>
 <title>Go Greenbox</title>
 </head>
 <body>
@@ -12,6 +28,9 @@
 
 <h2>Led {{.Led.Id}}</h2>
 <ul><li>Led {{.Led.Id}} is: {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}</li></ul>
+
+<a href="/toggleled" class="button buttonGreen">Switch Light</a>
+<a href="/stop" class="button buttonBlue">Stop</a>
 
 <h2>Soil</h2>
 <ul>

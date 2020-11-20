@@ -119,12 +119,10 @@ func main() {
 		}()
 	}
 
-	for {
-	}
-
 	log.Println("Launching website...")
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/toggleled", handlerToggleLed)
 	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
@@ -145,9 +143,17 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
 
+func handlerToggleLed(w http.ResponseWriter, req *http.Request) {
+	// TODO: rewrite or remove
+	g.Led.toggleLed()
+	http.Redirect(w, req, "/", http.StatusFound)
+}
+
 func handlerStop(w http.ResponseWriter, req *http.Request) {
 	// TODO: rewrite or remove
-	log.Println("Executing a hard stop...")
+	g.Led.switchLedOff()
+	rpio.Close()
+	log.Println("Shutting down...")
 	os.Exit(3)
 }
 
@@ -216,6 +222,14 @@ func (l *Led) switchLedOff() {
 	return
 }
 
+func (l *Led) toggleLed() {
+	if l.Active == true {
+		l.switchLedOff()
+	} else {
+		l.switchLedOn()
+	}
+}
+
 // MonitorMoist monitors moisture and if insufficent enables the waterpump.
 //func (g *Greenhouse) monitorMoist() {
 //	values := []int{}
@@ -262,6 +276,7 @@ func (g *Greenhouse) monitorMoist() {
 			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(j), fmt.Sprint(result)}})
 			time.Sleep(time.Millisecond)
 		}
+		s.Time = time.Now()
 		s.Value = int(result)
 	}
 	var values []int
@@ -270,15 +285,9 @@ func (g *Greenhouse) monitorMoist() {
 		log.Printf("%v: %v", s.Id, s.Value)
 	}
 	g.MoistValue = calcAverage(values...)
-	g.MoistTiming = time.Now()
+	g.MoistTime = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
-}
-
-// GetMoist gets retrieves the current moisture value from the sensor
-// and stores it in MoistSensor.Value.
-func (s *MoistSensor) getMoist() {
-
 }
 
 // CheckErr evaluates err for errors (not nil)
