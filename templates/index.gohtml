@@ -10,8 +10,17 @@
 
 <p>Last updated: {{.Time}} <i>(updates every {{.RefreshRate}} automatically)</i></p>
 
+<h2>Led {{.Led.Id}}</h2>
+<ul><li>Led {{.Led.Id}} is: {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}</li></ul>
 
-Led {{.Led.Id}} is {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}
+<h2>Soil</h2>
+<ul>
+	<li>Soil was last measured at {{fdateHM .MoistTime}} and is: {{.MoistValue}}</li>
+	{{range .MoistSs}}
+	<li>{{.id}}: {{.Value}} ({{fdateHM .Time}})</li>
+	{{end}}	
+</ul>
+
 
 {{range .Gx}}
   <h2>Greenhouse: {{.Id}}</h2>

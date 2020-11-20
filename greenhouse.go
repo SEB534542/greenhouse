@@ -60,13 +60,13 @@ type MoistSensor struct {
 
 // A Greenhouse represents a greenhouse with plants, moisture sensors and LED lights.
 type Greenhouse struct {
-	Id          string
-	Led         *Led
-	MoistSs     []*MoistSensor
-	MoistMin    int           // Minimal value for triggering
-	MoistValue  int           // Last measured value
-	MoistTiming time.Time     // Timing when last measured
-	MoistFreq   time.Duration // Frequency for checking moisture
+	Id         string
+	Led        *Led
+	MoistSs    []*MoistSensor
+	MoistMin   int           // Minimal value for triggering
+	MoistValue int           // Last measured value
+	MoistTime  time.Time     // Timing when last measured
+	MoistFreq  time.Duration // Frequency for checking moisture
 }
 
 func init() {
@@ -128,6 +128,7 @@ func main() {
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
+
 	data := struct {
 		Time string
 		Config
