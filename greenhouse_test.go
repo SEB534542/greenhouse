@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -106,14 +108,23 @@ func TestSaveConfig(t *testing.T) {
 //		{fmt.Sprint(channel), time.Now().Format("02-01-2006 15:04:05"), fmt.Sprint(i), fmt.Sprint(v)}})
 //}
 
-func TestGetMoist(t *testing.T) {
-	rpio.Open()
-	defer rpio.Close()
-	g := &Greenhouse{
-		MoistSs: []*MoistSensor{
-			{Id: "Left", Channel: 2},
-			{Id: "Middle", Channel: 1},
-			{Id: "Right", Channel: 0},
-		}}
-	g.monitorMoist()
+//func TestGetMoist(t *testing.T) {
+//	rpio.Open()
+//	defer rpio.Close()
+//	g := &Greenhouse{
+//		MoistSs: []*MoistSensor{
+//			{Id: "Left", Channel: 2},
+//			{Id: "Middle", Channel: 1},
+//			{Id: "Right", Channel: 0},
+//		}}
+//	g.monitorMoist()
+//}
+
+func TestHandlerMain(t *testing.T) {
+	c.RefreshRate = 30
+	log.Println("Launching website...")
+	http.HandleFunc("/", handlerMain)
+	http.Handle("/favicon.ico", http.NotFoundHandler())
+	// http.HandleFunc("/stop", handlerStop)
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }

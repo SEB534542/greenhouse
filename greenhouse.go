@@ -35,7 +35,7 @@ var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute}
 var g = &Greenhouse{}
-var c = &Config{}
+var c = Config{}
 
 type Config struct {
 	RefreshRate time.Duration // Refresh rate for website
@@ -129,12 +129,12 @@ func main() {
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
 	data := struct {
-		Time        string
-		RefreshRate int
-		G           *Greenhouse
+		Time string
+		Config
+		*Greenhouse
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
-		int(c.RefreshRate.Seconds()),
+		c,
 		g,
 	}
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
