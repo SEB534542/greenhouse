@@ -107,6 +107,13 @@ func TestSaveConfig(t *testing.T) {
 //}
 
 func TestGetMoist(t *testing.T) {
-	s := &MoistSensor{Id: "Left", Channel: 2}
-	s.getMoist()
+	rpio.Open()
+	defer rpio.Close()
+	g := &Greenhouse{
+		MoistSs: []*MoistSensor{
+			{Id: "Left", Channel: 2},
+			{Id: "Middle", Channel: 1},
+			{Id: "Right", Channel: 0},
+		}}
+	g.monitorMoist()
 }

@@ -110,6 +110,9 @@ func main() {
 		go func() {
 			for {
 				g.monitorMoist()
+				for i := 0; i <= 21600; i++ {
+					time.Sleep(time.Second)
+				}
 			}
 		}()
 	}
@@ -174,6 +177,7 @@ func (l *Led) monitorLed() {
 	case time.Now().Before(l.Start):
 		log.Printf("Turning LED %s off and snoozing for %v sec until %s...", l.Id, int(time.Until(l.Start).Seconds())+1, l.Start.Format("02-01 15:04:05"))
 		l.switchLedOff()
+		// TODO: revise and retest logic for snoozing(!)
 		for i := 0; i <= int(time.Until(l.Start).Seconds())+5; i++ {
 			mu.Unlock()
 			time.Sleep(time.Second)
@@ -183,6 +187,7 @@ func (l *Led) monitorLed() {
 	case time.Now().After(l.Start) && time.Now().Before(l.End):
 		log.Printf("Turning LED %s on and snoozing for %v sec until %s...", l.Id, int(time.Until(l.End).Seconds())+1, l.End.Format("02-01 15:04:05"))
 		l.switchLedOn()
+		// TODO: revise and retest logic for snoozing(!)
 		for i := 0; i <= int(time.Until(l.End).Seconds())+5; i++ {
 			mu.Unlock()
 			time.Sleep(time.Second)
@@ -232,47 +237,36 @@ func (l *Led) switchLedOff() {
 //	mu.Unlock()
 //}
 
-// MonitorMoist monitors moisture and if insufficent enables the waterpump.
+// MonitorMoist monitors moisture for all sensors and stores it in the csv file.
 func (g *Greenhouse) monitorMoist() {
+	log.Println("Reading soil moisture...")
+	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
+		panic(err)
+	}
+	rpio.SpiChipSelect(0) // Select CE0 slave
+	buffer := make([]byte, 3)
+	var result uint16
 	mu.Lock()
 	for _, s := range g.MoistSs {
-		s.getMoist()
+		for i := 0; i < 5; i++ {
+			buffer[0] = 0x01
+			buffer[1] = byte(8+s.Channel) << 4
+			buffer[2] = 0x00
+			rpio.SpiExchange(buffer) // buffer is populated with received data
+			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
+			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(i), fmt.Sprint(result)}})
+			time.Sleep(time.Millisecond)
+		}
+		s.Value = int(result)
 	}
 	mu.Unlock()
+	rpio.SpiEnd(rpio.Spi0)
 }
 
 // GetMoist gets retrieves the current moisture value from the sensor
 // and stores it in MoistSensor.Value.
 func (s *MoistSensor) getMoist() {
 
-	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
-		s.Time = time.Now()
-		s.Value = 0
-		log.Panic(err)
-	}
-	rpio.SpiChipSelect(0) // Select CE0 slave
-	buffer := make([]byte, 3)
-
-	channels := []int{0, 1, 2}
-
-	var result uint16
-
-	for _, channel := range channels {
-		for i := 0; i < 5; i++ {
-			buffer[0] = 0x01
-			buffer[1] = byte(8+channel) << 4
-			buffer[2] = 0x00
-
-			rpio.SpiExchange(buffer) // buffer is populated with received data
-
-			result = uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
-			appendCSV(moistFile, [][]string{{fmt.Sprint(s.Channel), time.Now().Format("02-01-2006 15:04:05"), fmt.Sprint(i), fmt.Sprint(s.Value)}})
-			time.Sleep(time.Millisecond)
-		}
-	}
-	s.Value = int(result)
-	rpio.SpiEnd(rpio.Spi0)
-	return
 }
 
 // CheckErr evaluates err for errors (not nil)
