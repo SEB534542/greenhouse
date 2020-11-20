@@ -11,16 +11,33 @@ import (
 var _ = fmt.Printf // For debugging; delete when done.
 var _ os.File      // For debugging; delete when done.
 
-func TestloadConfig(t *testing.T) {
-	err := loadConfig("./"+configFolder+"/"+configFile, &config)
-	if err != nil {
-		fmt.Printf("Error while loading ", err)
+func TestLoadConfigEmpty(t *testing.T) {
+
+	type test struct {
+		fname string
+		i     interface{}
 	}
 
-	// Load greenhouse
-	err = loadConfig("./"+configFolder+"/"+ghFile, &gx)
-	if err != nil {
-		fmt.Printf("Error while loading ", err)
+	tests := []test{
+		{"./" + configFolder + "/configtest.json", &c},
+		{"./" + configFolder + "/greenhousetest.json", &g},
 	}
 
+	// Load empty
+	for _, t := range tests {
+		err := loadConfig(t.fname, t.i)
+
+		if err != nil {
+			t.Errorf("File %v did not exist, or no error occured", t.fname)
+		}
+	}
+
+	// Load again to check if files still exist and remove files
+	for _, t := range tests {
+		err := loadConfig(t.fname, t.i)
+		if err != nil {
+			fmt.Println("Error while loading:", err)
+		}
+		os.Remove(t.fname)
+	}
 }

@@ -32,8 +32,9 @@ var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute}
 var g = &Greenhouse{}
+var c = &Config{}
 
-type config = struct {
+type Config struct {
 	RefreshRate time.Duration // Refresh rate for website
 }
 
@@ -89,26 +90,18 @@ func main() {
 	defer rpio.Close()
 
 	// Launch Greenhouse
-	for _, g := range gx {
-		log.Printf("Greenhouse %s has %v box(es) configured", g.Id, len(g.Boxes))
-		// For each box...
-		for _, b := range g.Boxes {
-			if len(b.MoistSs) != 0 {
-				// Monitor moisture
-				go b.monitorMoist()
-			}
-			// Reset start/end time and monitor light for each LED
-			for _, l := range b.Leds {
-				l.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.Start.Hour(), l.Start.Minute(), 0, 0, time.Now().Location())
-				l.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), l.End.Hour(), l.End.Minute(), 0, 0, time.Now().Location())
-				go l.monitorLed()
-			}
-		}
-		// Monitor temperature for all sensors in the Greenhouse
-		if len(g.TempSs) != 0 {
-			go g.monitorTemp()
-		}
+	if g.Led != nil {
+		// Reset start/end time and monitor light for  LED
+		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
+		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
+		go g.Led.monitorLed()
 	}
+
+	//	if len(b.MoistSs) != 0 {
+	//		// Monitor moisture
+	//		go b.monitorMoist()
+	//	}
+
 	for {
 	}
 	// log.Println("Launching website...")
@@ -125,7 +118,7 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		G           *Greenhouse
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
-		int(config.RefreshRate.Seconds()),
+		int(c.RefreshRate.Seconds()),
 		g,
 	}
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
@@ -221,28 +214,28 @@ func (l *Led) switchLed() {
 // MonitorMoist monitors moisture and if insufficent enables the waterpump.
 func (g *Greenhouse) monitorMoist() {
 	for {
-		values := []int{}
-		mu.Lock()
-		for _, s := range g.MoistSs {
-			s.getMoist()
-			values = append(values, s.Value)
-		}
-		g.MoistValue = calcAverage(values...)
-		log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
-		if g.MoistValue <= b.MoistMin {
-			// TODO: print it is too low(!)
-			mu.Unlock()
-			// TODO: start pump for t seconds
-			mu.Lock()
-			// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
-		}
-		log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
-		for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
-			mu.Unlock()
-			time.Sleep(time.Second)
-			mu.Lock()
-		}
-		mu.Unlock()
+		//		values := []int{}
+		//		mu.Lock()
+		//		for _, s := range g.MoistSs {
+		//			s.getMoist()
+		//			values = append(values, s.Value)
+		//		}
+		//		g.MoistValue = calcAverage(values...)
+		//		log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
+		//		if g.MoistValue <= b.MoistMin {
+		//			// TODO: print it is too low(!)
+		//			mu.Unlock()
+		//			// TODO: start pump for t seconds
+		//			mu.Lock()
+		//			// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
+		//		}
+		//		log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
+		//		for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
+		//			mu.Unlock()
+		//			time.Sleep(time.Second)
+		//			mu.Lock()
+		//		}
+		//		mu.Unlock()
 	}
 }
 
