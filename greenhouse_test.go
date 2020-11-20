@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	//"github.com/SEB534542/seb"
-	//"github.com/stianeikeland/go-rpio"
+	"time"
+
+	"github.com/SEB534542/seb"
+	"github.com/stianeikeland/go-rpio"
 )
 
 var _ = fmt.Printf // For debugging; delete when done.
@@ -24,20 +26,41 @@ func TestLoadConfigEmpty(t *testing.T) {
 	}
 
 	// Load empty
-	for _, t := range tests {
-		err := loadConfig(t.fname, t.i)
-
+	for _, x := range tests {
+		err := loadConfig(x.fname, x.i)
 		if err != nil {
-			t.Errorf("File %v did not exist, or no error occured", t.fname)
+			t.Error("Error", err)
 		}
 	}
 
 	// Load again to check if files still exist and remove files
-	for _, t := range tests {
-		err := loadConfig(t.fname, t.i)
+	for _, x := range tests {
+		err := loadConfig(x.fname, x.i)
 		if err != nil {
-			fmt.Println("Error while loading:", err)
+			t.Error("Error", err)
 		}
-		os.Remove(t.fname)
+		os.Remove(x.fname)
 	}
+}
+
+func TestSaveConfig(t *testing.T) {
+	fname := "./" + configFolder + "/greenhouse_test.json"
+
+	g1 := Greenhouse{
+		Id: "My Greenhouse",
+		Led: &Led{
+			Id:    "Main Led",
+			Pin:   rpio.Pin(23),
+			Start: time.Date(2020, time.November, 20, 8, 30, 0, 0, time.Local),
+			End:   time.Date(2020, time.November, 20, 21, 45, 0, 0, time.Local),
+		},
+	}
+	seb.SaveToJSON(&g1, fname)
+	os.Remove(fname)
+}
+
+func TestReadState(t *testing.T) {
+	rpio.Open()
+	defer rpio.Close()
+	fmt.Println(rpio.Pin(23).Read())
 }
