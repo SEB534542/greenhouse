@@ -99,7 +99,7 @@ func main() {
 		g.Led.Start = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.Start.Hour(), g.Led.Start.Minute(), 0, 0, time.Now().Location())
 		g.Led.End = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), g.Led.End.Hour(), g.Led.End.Minute(), 0, 0, time.Now().Location())
 		g.Led.Pin.Output()
-		g.Led.Pin.High()
+		//g.Led.Pin.High()
 		go func() {
 			for {
 				g.Led.monitorLed()
