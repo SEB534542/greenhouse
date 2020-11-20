@@ -128,15 +128,17 @@ func main() {
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
-
+	stats := seb.ReverseXss(readCSV(moistFile))
 	data := struct {
 		Time string
 		Config
 		*Greenhouse
+		Stats [][]string
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
 		c,
 		g,
+		stats,
 	}
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
