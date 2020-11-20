@@ -33,7 +33,7 @@ const moistFile = "moisture_stats.csv"
 
 var mu sync.Mutex
 var tpl *template.Template
-var fm = template.FuncMap{"fdateHM": hourMinute}
+var fm = template.FuncMap{"fdateHM": hourMinute, "fsec": seconds}
 var g = &Greenhouse{}
 var c = Config{}
 
@@ -285,6 +285,10 @@ func checkErr(err error) {
 // This function is used for displaying time on a gohtml webpage.
 func hourMinute(t time.Time) string {
 	return t.Format("15:04")
+}
+
+func seconds(d time.Duration) string {
+	return fmt.Sprint(d.Seconds())
 }
 
 // CalcAverage takes a variadic parameter of integers and

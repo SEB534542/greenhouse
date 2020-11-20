@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" http-equiv="refresh" content="{{.RefreshRate}}" />
+<meta charset="UTF-8" http-equiv="refresh" content="{{fsec .RefreshRate}}" />
 <title>Go Greenbox</title>
 </head>
 <body>
 
-<h1>Greenbox Dashboard</h1>
+<h1>Greenbox {{.Id}}</h1>
 
-<p>Last updated: {{.Time}} <i>(updates every {{.RefreshRate}} seconds automatically)</i></p>
+<p>Last updated: {{.Time}} <i>(updates every {{.RefreshRate}} automatically)</i></p>
+
+
+Led {{.Led.Id}} is {{if eq .Led.Active true}} Active {{else}} Inactive {{end}}
 
 {{range .Gx}}
   <h2>Greenhouse: {{.Id}}</h2>
