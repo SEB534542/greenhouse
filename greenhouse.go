@@ -111,7 +111,8 @@ func main() {
 		go func() {
 			for {
 				g.monitorMoist()
-				for i := 0; i <= int(g.MoistFreq.Seconds()); i++ {
+				log.Printf("Next soil measurement is in %v at %v", g.MoistFreq, g.MoistTime.Add(g.MoistFreq))
+				for time.Until(g.MoistTime.Add(g.MoistFreq)) >= 0 {
 					time.Sleep(time.Second)
 				}
 			}
@@ -128,6 +129,7 @@ func main() {
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
+	mu.Lock()
 	stats := seb.ReverseXss(readCSV(moistFile))
 	data := struct {
 		Time string
@@ -140,6 +142,7 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		g,
 		stats,
 	}
+	mu.Unlock()
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
 }
 
@@ -283,6 +286,7 @@ func (g *Greenhouse) monitorMoist() {
 		s.Value = int(result)
 	}
 	var values []int
+	log.Println(len(g.MoistSs))
 	for _, s := range g.MoistSs {
 		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
