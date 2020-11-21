@@ -189,20 +189,20 @@ func (l *Led) monitorLed() {
 		l.End = l.End.AddDate(0, 0, 1)
 		fallthrough
 	case time.Now().Before(l.Start):
-		log.Printf("Turning LED %s off and snoozing for %v sec until %s...", l.Id, int(time.Until(l.Start).Seconds())+1, l.Start.Format("02-01 15:04:05"))
+		log.Printf("Turning LED %s off and snoozing for %v until %s...", l.Id, time.Until(l.Start), l.Start.Format("02-01 15:04"))
 		l.switchLedOff()
 		// TODO: revise and retest logic for snoozing(!)
-		for i := 0; i <= int(time.Until(l.Start).Seconds())+5; i++ {
+		for time.Until(l.Start) <= 0 {
 			mu.Unlock()
 			time.Sleep(time.Second)
 			mu.Lock()
 		}
 		fallthrough
 	case time.Now().After(l.Start) && time.Now().Before(l.End):
-		log.Printf("Turning LED %s on and snoozing for %v sec until %s...", l.Id, int(time.Until(l.End).Seconds())+1, l.End.Format("02-01 15:04:05"))
+		log.Printf("Turning LED %s on and snoozing for %v until %s...", l.Id, time.Until(l.End), l.End.Format("02-01 15:04"))
 		l.switchLedOn()
 		// TODO: revise and retest logic for snoozing(!)
-		for i := 0; i <= int(time.Until(l.End).Seconds())+5; i++ {
+		for time.Until(l.End) > 0 {
 			mu.Unlock()
 			time.Sleep(time.Second)
 			mu.Lock()
