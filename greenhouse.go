@@ -111,7 +111,7 @@ func main() {
 		go func() {
 			for {
 				g.monitorMoist()
-				log.Printf("Next soil measurement is in %v at %v", g.MoistFreq, g.MoistTime.Add(g.MoistFreq))
+				log.Printf("Next soil measurement is in %v at %v", g.MoistFreq, g.MoistTime.Add(g.MoistFreq).Format("15:04"))
 				for time.Until(g.MoistTime.Add(g.MoistFreq)) >= 0 {
 					time.Sleep(time.Second)
 				}
