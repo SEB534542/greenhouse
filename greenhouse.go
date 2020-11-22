@@ -262,7 +262,6 @@ func (g *Greenhouse) monitorSoil() {
 		s.Value = int(result)
 	}
 	var values []int
-	log.Println(len(g.SoilSensors))
 	for _, s := range g.SoilSensors {
 		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
