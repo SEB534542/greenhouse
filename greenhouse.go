@@ -246,7 +246,6 @@ func (g *Greenhouse) monitorSoil() {
 	}
 	rpio.SpiChipSelect(0) // Select CE0 slave
 	buffer := make([]byte, 3)
-	var result uint16
 	mu.Lock()
 	for _, s := range g.SoilSensors {
 		var results []int
@@ -255,7 +254,7 @@ func (g *Greenhouse) monitorSoil() {
 			buffer[1] = byte(8+s.Channel) << 4
 			buffer[2] = 0x00
 			rpio.SpiExchange(buffer) // buffer is populated with received data
-			result = uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
+			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
 			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(j), fmt.Sprint(result)}})
 			time.Sleep(time.Millisecond)
 			results = append(results, result)
