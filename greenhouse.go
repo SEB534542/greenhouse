@@ -50,8 +50,8 @@ type Led struct {
 	End    time.Time
 }
 
-// A MoistSensor represents a sensor that measures the soil moisture.
-type MoistSensor struct {
+// A SoilSensor represents a sensor that measures the soil moisture.
+type SoilSensor struct {
 	Id      string
 	Channel int
 	Value   int
@@ -60,13 +60,13 @@ type MoistSensor struct {
 
 // A Greenhouse represents a greenhouse with plants, moisture sensors and LED lights.
 type Greenhouse struct {
-	Id         string
-	Led        *Led
-	MoistSs    []*MoistSensor
-	MoistMin   int           // Minimal value for triggering
-	MoistValue int           // Last measured value
-	MoistTime  time.Time     // Timing when last measured
-	MoistFreq  time.Duration // Frequency for checking moisture
+	Id          string
+	Led         *Led
+	SoilSensors []*SoilSensor
+	MoistMin    int           // Minimal value for triggering
+	MoistValue  int           // Last measured value
+	MoistTime   time.Time     // Timing when last measured
+	MoistFreq   time.Duration // Frequency for checking moisture
 }
 
 func init() {
@@ -107,12 +107,12 @@ func main() {
 	}
 
 	// Monitor moisture
-	if len(g.MoistSs) != 0 {
+	if len(g.SoilSensors) != 0 {
 		go func() {
 			for {
-				g.monitorMoist()
-				log.Printf("Next soil measurement is in %v at %v", g.MoistFreq, g.MoistTime.Add(g.MoistFreq).Format("15:04"))
-				for time.Until(g.MoistTime.Add(g.MoistFreq)) > 0 {
+				g.monitorSoil()
+				log.Printf("Next soil measurement is in %v at %v", g.SoilFreq, g.SoilTime.Add(g.SoilFreq).Format("15:04"))
+				for time.Until(g.SoilTime.Add(g.SoilFreq)) > 0 {
 					time.Sleep(time.Second)
 				}
 			}
@@ -152,7 +152,7 @@ func handlerToggleLed(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerSoilCheck(w http.ResponseWriter, req *http.Request) {
-	g.monitorMoist()
+	g.monitorSoil()
 	http.Redirect(w, req, "/", http.StatusFound)
 }
 
@@ -234,34 +234,8 @@ func (l *Led) toggleLed() {
 	}
 }
 
-// MonitorMoist monitors moisture and if insufficent enables the waterpump.
-//func (g *Greenhouse) monitorMoist() {
-//	values := []int{}
-//	mu.Lock()
-//	for _, s := range g.MoistSs {
-//		s.getMoist()
-//		values = append(values, s.Value)
-//	}
-//	g.MoistValue = calcAverage(values...)
-//	log.Printf("Average moisture in Greenhouse %v: %v based on: %v", g.Id, g.MoistValue, values)
-//	if g.MoistValue <= b.MoistMin {
-//		// TODO: print it is too low(!)
-//		mu.Unlock()
-//		// TODO: start pump for t seconds
-//		mu.Lock()
-//		// log.Printf("Pump %s has run for %s in Greenhouse %s\n", g.Pump.Id, g.Pump.Dur, g.Id)
-//	}
-//	log.Printf("Snoozing MonitorMoist for %v seconds", g.MoistFreq.Seconds())
-//	for i := 0; i < int(g.MoistFreq.Seconds()); i++ {
-//		mu.Unlock()
-//		time.Sleep(time.Second)
-//		mu.Lock()
-//	}
-//	mu.Unlock()
-//}
-
-// MonitorMoist monitors moisture for all sensors and stores it in the csv file.
-func (g *Greenhouse) monitorMoist() {
+// MonitorSoil monitors moisture for all sensors and stores it in the csv file.
+func (g *Greenhouse) monitorSoil() {
 	log.Println("Reading soil moisture...")
 	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
 		panic(err)
@@ -270,7 +244,7 @@ func (g *Greenhouse) monitorMoist() {
 	buffer := make([]byte, 3)
 	var result uint16
 	mu.Lock()
-	for _, s := range g.MoistSs {
+	for _, s := range g.SoilSensors {
 		for j := 0; j < 5; j++ {
 			buffer[0] = 0x01
 			buffer[1] = byte(8+s.Channel) << 4
@@ -284,13 +258,13 @@ func (g *Greenhouse) monitorMoist() {
 		s.Value = int(result)
 	}
 	var values []int
-	log.Println(len(g.MoistSs))
-	for _, s := range g.MoistSs {
+	log.Println(len(g.SoilSensors))
+	for _, s := range g.SoilSensors {
 		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
 	}
-	g.MoistValue = calcAverage(values...)
-	g.MoistTime = time.Now()
+	g.SoilValue = calcAverage(values...)
+	g.SoilTime = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
 }
