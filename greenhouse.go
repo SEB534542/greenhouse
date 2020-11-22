@@ -264,7 +264,6 @@ func (g *Greenhouse) monitorSoil() {
 		s.Value = calcAverage(results...)
 	}
 	var values []int
-	log.Println(len(g.SoilSensors))
 	for _, s := range g.SoilSensors {
 		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
@@ -284,12 +283,14 @@ func checkErr(err error) {
 	return
 }
 
-// HourMinute returns a variable of time.Time as a string in format "15:04"
+// HourMinute returns a variable of type time.Time as a string in format "15:04".
 // This function is used for displaying time on a gohtml webpage.
 func hourMinute(t time.Time) string {
 	return t.Format("15:04")
 }
 
+// Seconds returns a variable of type time.Duration as a string in seconds."
+// This function is used for displaying durations on a gohtml webpage.
 func seconds(d time.Duration) string {
 	return fmt.Sprint(d.Seconds())
 }
@@ -304,6 +305,7 @@ func calcAverage(xi ...int) int {
 	return total / len(xi)
 }
 
+// readCSV reads a given CSV file.
 func readCSV(file string) [][]string {
 	// Read the file
 	f, err := os.Open(file)
@@ -324,6 +326,7 @@ func readCSV(file string) [][]string {
 	return lines
 }
 
+// Append CSV reads an existing CSV and appends the new line(s).
 func appendCSV(file string, newLines [][]string) {
 
 	// Get current data
