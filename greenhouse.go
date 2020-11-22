@@ -16,8 +16,6 @@ import (
 	"github.com/stianeikeland/go-rpio"
 )
 
-// TODO: change all pins to actual RPIO pins
-
 // ghFile contains the json filename for storing the greenhouses and the components.
 const ghFile = "greenhouse.json"
 
@@ -83,11 +81,11 @@ func main() {
 	log.Println("--------Start of program--------")
 
 	// Load general config, including webserver
-	err := loadConfig("./"+configFolder+"/"+configFile, &c)
+	err := seb.loadConfig("./"+configFolder+"/"+configFile, &c)
 	checkErr(err)
 
 	// Load greenhouse
-	err = loadConfig("./"+configFolder+"/"+ghFile, &g)
+	err = seb.loadConfig("./"+configFolder+"/"+ghFile, &g)
 
 	// Connecting to rpio Pins
 	rpio.Open()
@@ -134,7 +132,7 @@ func main() {
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
 	mu.Lock()
-	stats := seb.ReverseXss(readCSV(moistFile))
+	stats := seb.ReverseXss(seb.readCSV(moistFile))
 	data := struct {
 		Time string
 		Config
@@ -165,25 +163,6 @@ func handlerStop(w http.ResponseWriter, req *http.Request) {
 	rpio.Close()
 	log.Println("Shutting down...")
 	os.Exit(3)
-}
-
-// loadConfig loads configuration from the given fname (including folder)
-// into i interface.
-func loadConfig(fname string, i interface{}) error {
-	if _, err := os.Stat(fname); os.IsNotExist(err) {
-		log.Printf("File '%v' does not exist, creating blank", fname)
-		seb.SaveToJSON(i, fname)
-	} else {
-		data, err := ioutil.ReadFile(fname)
-		if err != nil {
-			return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
-		}
-		err = json.Unmarshal(data, i)
-		if err != nil {
-			return fmt.Errorf("%s is corrupt. Please delete the file (%v)", fname, err)
-		}
-	}
-	return nil
 }
 
 // MonitorLED checks if LED should be switched on or off.
@@ -260,12 +239,12 @@ func (g *Greenhouse) measureSoil() {
 			time.Sleep(time.Millisecond)
 		}
 		s.Time = time.Now()
-		s.Value = calcAverage(results...)
+		s.Value = seb.calcAverage(results...)
 		log.Printf("%v: %v", s.Id, s.Value)
 		values = append(values, s.Value)
-		appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
+		seb.appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
 	}
-	g.SoilValue = calcAverage(values...)
+	g.SoilValue = seb.calcAverage(values...)
 	g.SoilTime = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
@@ -290,55 +269,4 @@ func hourMinute(t time.Time) string {
 // This function is used for displaying durations on a gohtml webpage.
 func seconds(d time.Duration) string {
 	return fmt.Sprint(d.Seconds())
-}
-
-// CalcAverage takes a variadic parameter of integers and
-// returns the average integer.
-func calcAverage(xi ...int) int {
-	total := 0
-	for _, v := range xi {
-		total = total + v
-	}
-	return total / len(xi)
-}
-
-// readCSV reads a given CSV file.
-func readCSV(file string) [][]string {
-	// Read the file
-	f, err := os.Open(file)
-	if err != nil {
-		f, err := os.Create(file)
-		if err != nil {
-			log.Fatal("Unable to create csv", err)
-		}
-		f.Close()
-		return [][]string{}
-	}
-	defer f.Close()
-	r := csv.NewReader(f)
-	lines, err := r.ReadAll()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return lines
-}
-
-// Append CSV reads an existing CSV and appends the new line(s).
-func appendCSV(file string, newLines [][]string) {
-
-	// Get current data
-	lines := readCSV(file)
-
-	// Add new lines
-	lines = append(lines, newLines...)
-
-	// Write the file
-	f, err := os.Create(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	w := csv.NewWriter(f)
-	if err = w.WriteAll(lines); err != nil {
-		log.Fatal(err)
-	}
 }
