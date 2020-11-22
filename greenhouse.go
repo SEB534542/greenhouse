@@ -112,7 +112,7 @@ func main() {
 			for {
 				g.monitorMoist()
 				log.Printf("Next soil measurement is in %v at %v", g.MoistFreq, g.MoistTime.Add(g.MoistFreq).Format("15:04"))
-				for time.Until(g.MoistTime.Add(g.MoistFreq)) >= 0 {
+				for time.Until(g.MoistTime.Add(g.MoistFreq)) > 0 {
 					time.Sleep(time.Second)
 				}
 			}
@@ -194,7 +194,6 @@ func (l *Led) monitorLed() {
 	case time.Now().Before(l.Start):
 		log.Printf("Turning LED %s off and snoozing for %v until %s...", l.Id, time.Until(l.Start), l.Start.Format("02-01 15:04"))
 		l.switchLedOff()
-		// TODO: revise and retest logic for snoozing(!)
 		for time.Until(l.Start) > 0 {
 			mu.Unlock()
 			time.Sleep(time.Second)
@@ -204,7 +203,6 @@ func (l *Led) monitorLed() {
 	case time.Now().After(l.Start) && time.Now().Before(l.End):
 		log.Printf("Turning LED %s on and snoozing for %v until %s...", l.Id, time.Until(l.End), l.End.Format("02-01 15:04"))
 		l.switchLedOn()
-		// TODO: revise and retest logic for snoozing(!)
 		for time.Until(l.End) > 0 {
 			mu.Unlock()
 			time.Sleep(time.Second)
