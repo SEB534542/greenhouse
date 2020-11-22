@@ -63,10 +63,10 @@ type Greenhouse struct {
 	Id          string
 	Led         *Led
 	SoilSensors []*SoilSensor
-	MoistMin    int           // Minimal value for triggering
-	MoistValue  int           // Last measured value
-	MoistTime   time.Time     // Timing when last measured
-	MoistFreq   time.Duration // Frequency for checking moisture
+	SoilMin     int           // Minimal value for triggering
+	SoilValue   int           // Last measured value
+	SoilTime    time.Time     // Timing when last measured
+	SoilFreq    time.Duration // Frequency for checking moisture
 }
 
 func init() {
@@ -104,6 +104,8 @@ func main() {
 				g.Led.monitorLed()
 			}
 		}()
+	} else {
+		log.Println("No LED configured")
 	}
 
 	// Monitor moisture
@@ -117,6 +119,8 @@ func main() {
 				}
 			}
 		}()
+	} else {
+		log.Println("No SoilSensors configured")
 	}
 
 	log.Println("Launching website...")
