@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -81,11 +78,11 @@ func main() {
 	log.Println("--------Start of program--------")
 
 	// Load general config, including webserver
-	err := seb.loadConfig("./"+configFolder+"/"+configFile, &c)
+	err := seb.LoadConfig("./"+configFolder+"/"+configFile, &c)
 	checkErr(err)
 
 	// Load greenhouse
-	err = seb.loadConfig("./"+configFolder+"/"+ghFile, &g)
+	err = seb.LoadConfig("./"+configFolder+"/"+ghFile, &g)
 
 	// Connecting to rpio Pins
 	rpio.Open()
@@ -132,7 +129,7 @@ func main() {
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
 	mu.Lock()
-	stats := seb.ReverseXss(seb.readCSV(moistFile))
+	stats := seb.ReverseXss(seb.ReadCSV(moistFile))
 	data := struct {
 		Time string
 		Config
@@ -239,12 +236,12 @@ func (g *Greenhouse) measureSoil() {
 			time.Sleep(time.Millisecond)
 		}
 		s.Time = time.Now()
-		s.Value = seb.calcAverage(results...)
+		s.Value = seb.CalcAverage(results...)
 		log.Printf("%v: %v", s.Id, s.Value)
 		values = append(values, s.Value)
-		seb.appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
+		seb.AppendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
 	}
-	g.SoilValue = seb.calcAverage(values...)
+	g.SoilValue = seb.CalcAverage(values...)
 	g.SoilTime = time.Now()
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
