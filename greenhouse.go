@@ -112,7 +112,7 @@ func main() {
 	if len(g.SoilSensors) != 0 {
 		go func() {
 			for {
-				g.monitorSoil()
+				g.measureSoil()
 				log.Printf("Next soil measurement is in %v at %v", g.SoilFreq, g.SoilTime.Add(g.SoilFreq).Format("15:04"))
 				for time.Until(g.SoilTime.Add(g.SoilFreq)) > 0 {
 					time.Sleep(time.Second)
@@ -156,7 +156,7 @@ func handlerToggleLed(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerSoilCheck(w http.ResponseWriter, req *http.Request) {
-	g.monitorSoil()
+	g.measureSoil()
 	http.Redirect(w, req, "/", http.StatusFound)
 }
 
@@ -239,7 +239,7 @@ func (l *Led) toggleLed() {
 }
 
 // MonitorSoil monitors moisture for all sensors and stores it in the csv file.
-func (g *Greenhouse) monitorSoil() {
+func (g *Greenhouse) measureSoil() {
 	log.Println("Reading soil moisture...")
 	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
 		panic(err)
