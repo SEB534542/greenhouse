@@ -29,7 +29,7 @@ const configFile = "config.json"
 const configFolder = "config"
 
 // moistFile is the file where moisture data is stored
-const moistFile = "moisture_stats.csv"
+const moistFile = "soil_stats.csv"
 
 var mu sync.Mutex
 var tpl *template.Template
@@ -246,6 +246,7 @@ func (g *Greenhouse) measureSoil() {
 	}
 	rpio.SpiChipSelect(0) // Select CE0 slave
 	buffer := make([]byte, 3)
+	var values []int
 	mu.Lock()
 	for _, s := range g.SoilSensors {
 		var results []int
@@ -255,17 +256,14 @@ func (g *Greenhouse) measureSoil() {
 			buffer[2] = 0x00
 			rpio.SpiExchange(buffer) // buffer is populated with received data
 			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
-			appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(j), fmt.Sprint(result)}})
+			results = append(results, int(result))
 			time.Sleep(time.Millisecond)
-			results = append(results, result)
 		}
 		s.Time = time.Now()
 		s.Value = calcAverage(results...)
-	}
-	var values []int
-	for _, s := range g.SoilSensors {
-		values = append(values, s.Value)
 		log.Printf("%v: %v", s.Id, s.Value)
+		values = append(values, s.Value)
+		appendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
 	}
 	g.SoilValue = calcAverage(values...)
 	g.SoilTime = time.Now()
