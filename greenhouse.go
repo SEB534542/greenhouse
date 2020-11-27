@@ -239,10 +239,14 @@ func (g *Greenhouse) measureSoil() {
 		s.Value = seb.CalcAverage(results...)
 		log.Printf("%v: %v", s.Id, s.Value)
 		values = append(values, s.Value)
-		seb.AppendCSV(moistFile, [][]string{{time.Now().Format("02-01-2006 15:04:05"), fmt.Sprintf("%v (%v)", s.Id, s.Channel), fmt.Sprint(s.Value)}})
 	}
 	g.SoilValue = seb.CalcAverage(values...)
 	g.SoilTime = time.Now()
+	xs := []string{fmt.Sprint(g.SoilTime.Format("02-01-2006 15:04:05")), fmt.Sprint(g.SoilValue)}
+	for _, v := range values {
+		xs = append(xs, fmt.Sprint(v))
+	}
+	seb.AppendCSV(moistFile, [][]string{xs})
 	mu.Unlock()
 	rpio.SpiEnd(rpio.Spi0)
 }

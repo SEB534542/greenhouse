@@ -46,7 +46,11 @@
 
 <h2>Soil Statistics</h2>
 <table>
-<tr><td><b>Date</b></td><td><b>Sensor</b></td><td><b>Round</b></td><td><b>Value</b></td></tr>
+<tr><td><b>Date</b></td><td><b>Avg. Value</b></td>
+{{range .SoilSensors}}
+<td><b>{{.Id}}</b></td>
+{{end}}
+</tr>
 {{range .Stats}}
 <tr>
 {{range .}}
