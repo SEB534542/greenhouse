@@ -39,6 +39,7 @@
 <h2>Soil</h2>
 <ul>
 	<li>Soil was last measured at {{fdateHM .SoilTime}} and is: {{.SoilValue}}</li>
+	<li>Next measurement is at {{.NextSoil}}</li>
 	{{range .SoilSensors}}
 	<li>{{.Id}}: {{.Value}} ({{fdateHM .Time}})</li>
 	{{end}}

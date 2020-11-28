@@ -108,10 +108,14 @@ func main() {
 		go func() {
 			for {
 				g.measureSoil()
+				mu.Lock()
 				log.Printf("Next soil measurement is in %v at %v", g.SoilFreq, g.SoilTime.Add(g.SoilFreq).Format("15:04"))
 				for time.Until(g.SoilTime.Add(g.SoilFreq)) > 0 {
+					mu.Unlock()
 					time.Sleep(time.Second)
+					mu.Lock()
 				}
+				mu.Unlock()
 			}
 		}()
 	} else {
@@ -134,12 +138,14 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		Time string
 		Config
 		*Greenhouse
-		Stats [][]string
+		Stats    [][]string
+		NextSoil string
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
 		c,
 		g,
 		stats,
+		g.SoilTime.Add(g.SoilFreq).Format("15:04"),
 	}
 	mu.Unlock()
 	tpl.ExecuteTemplate(w, "index.gohtml", data)
@@ -237,11 +243,11 @@ func (g *Greenhouse) measureSoil() {
 		}
 		s.Time = time.Now()
 		s.Value = seb.CalcAverage(results...)
-		log.Printf("%v: %v", s.Id, s.Value)
 		values = append(values, s.Value)
 	}
 	g.SoilValue = seb.CalcAverage(values...)
 	g.SoilTime = time.Now()
+	log.Printf("Average soil is %v", g.SoilValue)
 	xs := []string{fmt.Sprint(g.SoilTime.Format("02-01-2006 15:04:05")), fmt.Sprint(g.SoilValue)}
 	for _, v := range values {
 		xs = append(xs, fmt.Sprint(v))
