@@ -34,6 +34,7 @@ var c = Config{}
 
 type Config struct {
 	RefreshRate time.Duration // Refresh rate for website
+	Port        string
 }
 
 // Led represents a LED light in the greenhouse.
@@ -127,6 +128,7 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/toggleled", handlerToggleLed)
 	http.HandleFunc("/soilcheck", handlerSoilCheck)
+	http.HandleFunc("/config/", handlerConfig)
 	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
@@ -159,6 +161,109 @@ func handlerToggleLed(w http.ResponseWriter, req *http.Request) {
 func handlerSoilCheck(w http.ResponseWriter, req *http.Request) {
 	g.measureSoil()
 	http.Redirect(w, req, "/", http.StatusFound)
+}
+
+func handlerConfig(w http.ResponseWriter, req *http.Request) {
+	var err error
+	mu.Lock()
+	defer mu.Unlock()
+	if req.Method == http.MethodPost {
+		config.Sunrise, err = StoTime(req.PostFormValue("Sunrise"), 0)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.Sunset, err = StoTime(req.PostFormValue("Sunset"), 0)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.SunsetThreshold, err = strToInt(req.PostFormValue("SunsetThreshold"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.Interval, err = strToInt(req.PostFormValue("Interval"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightGoodValue, err = strToInt(req.PostFormValue("LightGoodValue"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightGoodThreshold, err = strToInt(req.PostFormValue("LightGoodThreshold"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightNeutralValue, err = strToInt(req.PostFormValue("LightNeutralValue"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightNeutralThreshold, err = strToInt(req.PostFormValue("LightNeutralThreshold"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightBadValue, err = strToInt(req.PostFormValue("LightBadValue"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LightBadThreshold, err = strToInt(req.PostFormValue("LightBadThreshold"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.AllowedOutliers, err = strToInt(req.PostFormValue("AllowedOutliers"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.RefreshRate, err = strToInt(req.PostFormValue("RefreshRate"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if req.PostFormValue("EnableMail") == "" {
+			config.EnableMail = false
+		} else {
+			config.EnableMail, err = strconv.ParseBool(req.PostFormValue("EnableMail"))
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+		config.MoveHistory, err = strToInt(req.PostFormValue("MoveHistory"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.LogRecords, err = strToInt(req.PostFormValue("LogRecords"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.Notes = req.PostFormValue("Notes")
+		config.Username = req.PostFormValue("Username")
+		if req.PostFormValue("Password") != "" {
+			err = bcrypt.CompareHashAndPassword(config.Password, []byte(req.PostFormValue("CurrentPassword")))
+			if err != nil {
+				http.Error(w, "Current password is incorrect, password has not been changed", http.StatusForbidden)
+				SaveToJson(config, configFile)
+				log.Println("Updated variables (except for password)")
+				return
+			} else {
+				config.Password, _ = bcrypt.GenerateFromPassword([]byte(req.PostFormValue("Password")), bcrypt.MinCost)
+			}
+		}
+		config.IpWhitelist = func(s string) []string {
+			xs := strings.Split(s, ",")
+			for i, v := range xs {
+				xs[i] = strings.Trim(v, " ")
+			}
+			return xs
+		}(req.PostFormValue("IpWhitelist"))
+
+		config.LightFactor, err = strToInt(req.PostFormValue("LightFactor"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		SaveToJson(config, configFile)
+		log.Println("Updated variables")
+	}
+	err = tpl.ExecuteTemplate(w, "config.gohtml", config)
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func handlerStop(w http.ResponseWriter, req *http.Request) {
