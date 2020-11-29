@@ -6,90 +6,24 @@
 </head>
 <body>
 
-<h1>Update Variables</h1>
+<h1>Update Configuration</h1>
 
 <p><a href="/">Click here to go back to home</a></p>
 
 <form method="POST">
-  <table>
-      <tr>
-        <td></td><td>Good</td><td>Neutral</td><td>Bad</td>
-      </tr>
-      <tr>
-        <td>Value</td>
-        <td><input type="number" name="LightGoodValue" value="{{.LightGoodValue}}" required></td>
-        <td><input type="number" name="LightNeutralValue" value="{{.LightNeutralValue}}" required></td>
-        <td><input type="number" name="LightBadValue" value="{{.LightBadValue}}" required></td>
-      </tr> 
-      <tr>
-        <td>Threshold</td>
-        <td><input type="number" name="LightGoodThreshold" value="{{.LightGoodThreshold}}" required></td>
-        <td><input type="number" name="LightNeutralThreshold" value="{{.LightNeutralThreshold}}" required></td>
-        <td><input type="number" name="LightBadThreshold" value="{{.LightBadThreshold}}" required></td>
-  </table>
-  <br>
+  <h2>General Configuration</h2>
 	<table>
 		<tr>
-			<td><label for="Sunrise">Sunrise (hh:mm)</label></td>
-			<td><input type="time" name="Sunrise" value="{{fdateHM .Sunrise}}" required></td>
+			<td><label for="RefreshRate">Refresh rate website</label></td>
+			<td><input type="number" name="RefreshRate" value="{{fsec .RefreshRate}}" required></td>
 		</tr>
 		<tr>	
-			<td><label for="Sunset">Sunset (hh:mm)</label></td>
-			<td><input type="time" name="Sunset" value="{{fdateHM .Sunset}}" required></td>
-		
+			<td><label for="Port">Port</label></td>
+			<td><input type="text" name="Port" value="{{.Port}}" required></td>
 		<tr>
-			<td><label for="SunsetThreshold">Sunset Threshold (Number of minutes)</label></td>
-			<td><input type="number" name="SunsetThreshold" value="{{.SunsetThreshold}}" required></td>
-		</tr>
-		<tr>
-			<td><label for="AllowedOutliers">AllowedOutliers (Number of times)</label></td>
-			<td><input type="number" name="AllowedOutliers" value="{{.AllowedOutliers}}" required></td>
-		</tr>
-    		<tr>
-			<td><label for="Interval">Interval in seconds</label></td>
-			<td><input type="number" name="Interval" value="{{.Interval}}" required></td>
-		</tr>
-		<tr>
-			<td><label for="RefreshRate">RefreshRate in seconds</label></td>
-			<td><input type="number" name="RefreshRate" value="{{.RefreshRate}}" required></td>
-		</tr>
-		<tr>
-			<td><label for="EnableMail">EnableMail</label></td>
-			<td><input type="checkbox" name="EnableMail" value=true {{if eq .EnableMail true}} checked {{end}}></td>
-		</tr>
-		<tr>
-			<td><label for="MoveHistory">Number of historical Movements</label></td>
-			<td><input type="number" name="MoveHistory" value="{{.MoveHistory}}" required></td>
-		</tr>
-    		<tr>
-			<td><label for="LogRecords">Number Log records shown</label></td>
-			<td><input type="number" name="LogRecords" value="{{.LogRecords}}" required></td>
-		</tr>
-		<tr>
-			<td><label for="Notes">Notes</label></td>
-			<td><textarea name="Notes" rows="8" cols="50">{{.Notes}}</textarea></td>
-		</tr>		
-		<tr>
-			<td><label for="Username">Username</label></td>
-			<td><input type="text" name="Username" value="{{.Username}}" required></td>
-		</tr>		
-		<tr>
-			<td><label for="CurrentPassword">Current Password</label></td>
-			<td><input type="password" name="CurrentPassword"></td>
-		</tr>		
-		<tr>
-			<td><label for="Password">Password</label></td>
-			<td><input type="password" name="Password"></td>
-		</tr>		
-    		<tr>
-			<td><label for="IpWhitelist">Whitelisted IPs (comma separated)</label></td>
-			<td><input type="text" name="IpWhitelist" value="{{fsliceString .IpWhitelist}}"></td>
-		</tr>
-		<tr>
-			<td><label for="LightFactor">Factor to correct measured analog light value</label></td>
-			<td><input type="number" name="LightFactor" value="{{.LightFactor}}" required></td>
-		</tr>	
-	</table>
+  </table>
+  <h2>Greenhouse Configuration</h2>   
+
 	<br>
 	<input type="submit" value="Save">
 </form>
