@@ -34,7 +34,7 @@ var c = Config{}
 
 type Config struct {
 	RefreshRate time.Duration // Refresh rate for website
-	Port        string
+	Port        int
 }
 
 // Led represents a LED light in the greenhouse.
@@ -81,6 +81,10 @@ func main() {
 	// Load general config, including webserver
 	err := seb.LoadConfig("./"+configFolder+"/"+configFile, &c)
 	checkErr(err)
+	if c.Port == 0 {
+		c.Port = 8080
+		log.Print("Unable to load port, set to %v", c.Port)
+	}
 
 	// Load greenhouse
 	err = seb.LoadConfig("./"+configFolder+"/"+ghFile, &g)
@@ -123,14 +127,14 @@ func main() {
 		log.Println("No SoilSensors configured")
 	}
 
-	log.Println("Launching website...")
+	log.Printf("Launching website at localhost:%v...", c.Port)
 	http.HandleFunc("/", handlerMain)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/toggleled", handlerToggleLed)
 	http.HandleFunc("/soilcheck", handlerSoilCheck)
 	http.HandleFunc("/config/", handlerConfig)
 	http.HandleFunc("/stop", handlerStop)
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(c.Port), nil))
 }
 
 func handlerMain(w http.ResponseWriter, req *http.Request) {
@@ -165,23 +169,42 @@ func handlerSoilCheck(w http.ResponseWriter, req *http.Request) {
 
 func handlerConfig(w http.ResponseWriter, req *http.Request) {
 	var err error
+	var msgs []string
 	mu.Lock()
 	defer mu.Unlock()
 	if req.Method == http.MethodPost {
-		c.RefreshRate = req.PostFormValue("RefreshRate") * time.Second
-		port = req.PostFormValue("Port")
-		if len(port) != 4 {
-			log.Println("Incorrect value for Port, should be four integers")
+		refreshRate, err := time.ParseDuration(req.PostFormValue("RefreshRate") + "s")
+		if err != nil {
+			msg := "Unable to save RefreshRate"
+			msgs = append(msgs, msg)
+			log.Println(msg)
+		} else {
+			c.RefreshRate = refreshRate
+		}
+		port, err := seb.StrToIntZ(req.PostFormValue("Port"))
+		if err != nil || (port < 1000 && port > 9999) {
+			msg := "Unable to save port, should be within range 1000-9999"
+			msgs = append(msgs, msg)
+			log.Println(msg)
 		} else {
 			c.Port = port
 		}
-		seb.SaveToJson(c, configFile)
-		log.Println("Updated configuration")
+		seb.SaveToJSON(c, "./"+configFolder+"/"+configFile)
+		var msg string
+		if len(msgs) == 0 {
+			msg = "Saved configuration"
+		} else {
+			msg = "Saved the rest"
+		}
+		msgs = append(msgs, msg)
+		log.Println(msg)
 	}
 	data := struct {
+		Msgs []string
 		Config
 		*Greenhouse
 	}{
+		msgs,
 		c,
 		g,
 	}

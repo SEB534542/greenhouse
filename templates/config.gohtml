@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sunscreen variables</title>
+    <title>Greenhouse Configuration</title>
 </head>
 <body>
-
-<h1>Update Configuration</h1>
+{{range .Msgs}}
+<i>{{.}}</i><br>
+{{end}}
+<h1>Greenhouse Configuration</h1>
 
 <p><a href="/">Click here to go back to home</a></p>
 
@@ -14,21 +16,17 @@
   <h2>General Configuration</h2>
 	<table>
 		<tr>
-			<td><label for="RefreshRate">Refresh rate website</label></td>
+			<td><label for="RefreshRate">Refresh rate website (seconds)</label></td>
 			<td><input type="number" name="RefreshRate" value="{{fsec .RefreshRate}}" required></td>
 		</tr>
 		<tr>	
-			<td><label for="Port">Port</label></td>
-			<td><input type="text" name="Port" value="{{.Port}}" required></td>
+			<td><label for="Port">Port (range: 1000-9999; requires reboot)</label></td>
+			<td><input type="number" name="Port" value="{{.Port}}" required></td>
 		<tr>
   </table>
   <h2>Greenhouse Configuration</h2>   
-
 	<br>
 	<input type="submit" value="Save">
 </form>
-
-<p><a href="/">Click here to go back to home</a></p>
-
 </body>
 </html>
