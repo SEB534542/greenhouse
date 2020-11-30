@@ -23,8 +23,52 @@
 			<td><label for="Port">Port (range: 1000-9999; requires reboot)</label></td>
 			<td><input type="number" name="Port" value="{{.Port}}" required></td>
 		<tr>
-  </table>
-  <h2>Greenhouse Configuration</h2>   
+ 	</table>
+ <h2>Greenhouse Configuration</h2>   
+	<table>
+		<tr>
+			<td><b>General</b></td>
+			<td><label for="Id">Greenhouse ID</label></td>
+			<td><input type="text" name="Id" value="{{.Id}}" required></td>
+		</tr>
+		<tr>
+			<td><b>Led</b></td>
+			<td><label for="Led.Id">Led ID</label></td>
+			<td><input type="text" name="Led.Id" value="{{.Led.Id}}" required></td>
+		</tr>
+		<tr>
+			<td></td><td><label for="Led.Pin">Pin</label></td>
+			<td><input type="text" name="Led.Pin" value="{{.Led.Pin}}" required></td>
+		</tr>
+		<tr>
+			<td></td><td><label for="Led.Start">Start</label></td>
+			<td><input type="time" name="Led.Start" value="{{fdateHM .Led.Start}}" required></td>
+		</tr>
+		<tr>
+			<td></td><td><label for="Led.End">End</label></td>
+			<td><input type="time" name="Led.End" value="{{fdateHM .Led.End}}" required></td>
+		</tr>
+		{{range .SoilSensors}}
+			<tr>
+				<td><b>Soil Sensor {{.Id}}</b></td>
+				<td><label for="SoilSensor.{{.Id}}">Id</label></td>
+				<td><input type="text" name="SoilSensor.{{.Id}}" value="{{.Id}}" required></td>
+			</tr>
+			<tr>
+				<td></td><td><label for="SoilSensor.{{.Id}}.Channel">Channel</label></td>
+				<td><input type="text" name="SoilSensor.{{.Id}}.Channel" value="{{.Channel}}" required></td>
+			</tr>
+		{{end}}
+		<tr>
+			<td><b>Soil config</b></td>
+			<td><label for="SoilMin">Soil Threshold</label></td>
+			<td><input type="number" name="SoilMin" value="{{.SoilMin}}" required></td>
+		</tr>
+		<tr>
+			<td></td><td><label for="SoilFreq">Soil Frequency</label></td>
+			<td><input type="number" name="SoilFreq" value="{{fsec .SoilFreq}}" required></td>
+		</tr>
+	</table>
 	<br>
 	<input type="submit" value="Save">
 </form>
