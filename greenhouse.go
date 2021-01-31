@@ -150,7 +150,6 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		Config
 		*Greenhouse
 		Stats    [][]string
-		Water    [][]string
 		NextSoil string
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
