@@ -26,6 +26,9 @@ const configFolder = "config"
 // moistFile is the file where moisture data is stored
 const moistFile = "soil_stats.csv"
 
+// waterFile is the file where moisture data is stored
+const wateringFile = "water.csv"
+
 var mu sync.Mutex
 var tpl *template.Template
 var fm = template.FuncMap{"fdateHM": hourMinute, "fsec": seconds}
@@ -132,6 +135,7 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/toggleled", handlerToggleLed)
 	http.HandleFunc("/soilcheck", handlerSoilCheck)
+	http.HandleFunc("/record", handlerWatering)
 	http.HandleFunc("/config/", handlerConfig)
 	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(c.Port), nil))
@@ -145,6 +149,7 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		Config
 		*Greenhouse
 		Stats    [][]string
+		Water    [][]string
 		NextSoil string
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
@@ -263,6 +268,11 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 		log.Panic(err)
 	}
 	return
+}
+
+func handlerWatering(w http.ResponseWriter, req *http.Request) {
+	xs := []string{fmt.Sprint(time.Now().Format("02-01-2006 15:04:05")), "Water added"}
+	seb.AppendCSV(wateringFile, [][]string{xs})
 }
 
 func handlerStop(w http.ResponseWriter, req *http.Request) {
