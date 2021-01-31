@@ -150,13 +150,14 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		Config
 		*Greenhouse
 		Stats    [][]string
+		Watering [][]string
 		NextSoil string
 	}{
 		time.Now().Format("_2 Jan 06 15:04:05"),
 		c,
 		g,
 		stats,
-		watering
+		watering,
 		g.SoilTime.Add(g.SoilFreq).Format("15:04"),
 	}
 	mu.Unlock()
