@@ -144,6 +144,7 @@ func main() {
 func handlerMain(w http.ResponseWriter, req *http.Request) {
 	mu.Lock()
 	stats := seb.ReverseXss(seb.ReadCSV(moistFile))
+	watering := seb.ReverseXss(seb.ReadCSV(wateringFile))
 	data := struct {
 		Time string
 		Config
@@ -156,6 +157,7 @@ func handlerMain(w http.ResponseWriter, req *http.Request) {
 		c,
 		g,
 		stats,
+		watering
 		g.SoilTime.Add(g.SoilFreq).Format("15:04"),
 	}
 	mu.Unlock()

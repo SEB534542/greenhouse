@@ -48,18 +48,19 @@
 
 <h2>Soil Statistics</h2>
 <table>
-<tr><td><b>Date</b></td><td align="right"><b>Avg. Value</b></td>
-{{range .SoilSensors}}
-<td align="right"><b>{{.Id}}</b></td>
-{{end}}
-</tr>
-{{range .Stats}}
-<tr align="right">
-{{range .}}
-<td>{{.}}</td>
-{{end}}
-</tr>
-{{end}}
+  <tr><td><b>Date</b></td><td align="right"><b>Avg. Value</b></td>
+    {{range .SoilSensors}}
+      <td align="right"><b>{{.Id}}</b></td>
+    {{end}}
+  </tr>
+  {{range .Stats}}
+    <tr align="right">
+    {{range .}}
+      <td>{{.}}</td>
+    {{end}}
+    </tr>
+  {{end}}
+</table>
 
 </body>
 </html>
