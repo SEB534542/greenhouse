@@ -135,7 +135,7 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/toggleled", handlerToggleLed)
 	http.HandleFunc("/soilcheck", handlerSoilCheck)
-	http.HandleFunc("/record", handlerWatering)
+	http.HandleFunc("/water", handlerWater)
 	http.HandleFunc("/config/", handlerConfig)
 	http.HandleFunc("/stop", handlerStop)
 	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(c.Port), nil))
@@ -269,9 +269,10 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func handlerWatering(w http.ResponseWriter, req *http.Request) {
+func handlerWater(w http.ResponseWriter, req *http.Request) {
 	xs := []string{fmt.Sprint(time.Now().Format("02-01-2006 15:04:05")), "Water added"}
 	seb.AppendCSV(wateringFile, [][]string{xs})
+	http.Redirect(w, req, "/", http.StatusFound)
 }
 
 func handlerStop(w http.ResponseWriter, req *http.Request) {
