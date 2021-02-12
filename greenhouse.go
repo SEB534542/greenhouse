@@ -273,7 +273,7 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerWater(w http.ResponseWriter, req *http.Request) {
-	xs := []string{fmt.Sprint(time.Now().Format("02-01-2006 15:04:05")), "Water added"}
+	xs := []string{fmt.Sprint(time.Now().Format("02-01-2006 15:04:05")), "Water added", fmt.Sprint(g.SoilValue)}
 	seb.AppendCSV(wateringFile, [][]string{xs})
 	http.Redirect(w, req, "/", http.StatusFound)
 }
