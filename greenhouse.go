@@ -208,17 +208,21 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 		} else {
 			g.Led.Pin = rpio.Pin(pin)
 		}
-		g.Led.Start, err = seb.StoTime(req.PostFormValue("Led.Start"), 0)
+		start, err := seb.StoTime(req.PostFormValue("Led.Start"), 0)
 		if err != nil {
 			msg := fmt.Sprintf("Unable to save Led Start time '%v' (%v)", g.Led.Start, err)
 			msgs = append(msgs, msg)
 			log.Println(msg)
+		} else {
+			g.Led.Start = start
 		}
-		g.Led.End, err = seb.StoTime(req.PostFormValue("Led.End"), 0)
+		end, err := seb.StoTime(req.PostFormValue("Led.End"), 0)
 		if err != nil {
 			msg := fmt.Sprintf("Unable to save Led End time %v (%v)", g.Led.End, err)
 			msgs = append(msgs, msg)
 			log.Println(msg)
+		} else {
+			g.Led.End = end
 		}
 		for _, v := range g.SoilSensors {
 			channel, err := seb.StrToIntZ(req.PostFormValue("SoilSensor." + v.Id + ".Channel"))
@@ -231,19 +235,21 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 			}
 			v.Id = req.PostFormValue("SoilSensor." + v.Id)
 		}
-		g.SoilMin, err = seb.StrToIntZ(req.PostFormValue("SoilMin"))
+		soilMin, err := seb.StrToIntZ(req.PostFormValue("SoilMin"))
 		if err != nil {
 			msg := fmt.Sprintf("Unable to save Soil Threshold should be within range 1000-9999 (err)", err)
 			msgs = append(msgs, msg)
 			log.Println(msg)
 		} else {
-			c.Port = port
+			g.SoilMin = soilMin
 		}
-		g.SoilFreq, err = time.ParseDuration(req.PostFormValue("SoilFreq") + "s")
+		soilFreq, err := time.ParseDuration(req.PostFormValue("SoilFreq") + "s")
 		if err != nil {
 			msg := fmt.Sprintf("Unable to save Soil Frequency: %v", err)
 			msgs = append(msgs, msg)
 			log.Println(msg)
+		} else {
+			g.SoilFreq = soilFreq
 		}
 		seb.SaveToJSON(c, "./"+configFolder+"/"+configFile)
 		seb.SaveToJSON(g, "./"+configFolder+"/"+ghFile)
