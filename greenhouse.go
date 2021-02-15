@@ -191,7 +191,7 @@ func handlerConfig(w http.ResponseWriter, req *http.Request) {
 		}
 		port, err := seb.StrToIntZ(req.PostFormValue("Port"))
 		if err != nil || !(port >= 1000 && port <= 9999) {
-			msg := fmt.Sprintf("Unable to save port '%v', should be within range 1000-9999 (err)", port, err)
+			msg := fmt.Sprintf("Unable to save port '%v', should be within range 1000-9999 (%v)", port, err)
 			msgs = append(msgs, msg)
 			log.Println(msg)
 		} else {
