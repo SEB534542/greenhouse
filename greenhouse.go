@@ -40,23 +40,6 @@ type Config struct {
 	Port        int
 }
 
-// Led represents a LED light in the greenhouse.
-type Led struct {
-	Id     string // e.g. "Main" or "01"
-	Active bool
-	Pin    rpio.Pin
-	Start  time.Time
-	End    time.Time
-}
-
-// A SoilSensor represents a sensor that measures the soil moisture.
-type SoilSensor struct {
-	Id      string
-	Channel int
-	Value   int
-	Time    time.Time
-}
-
 // A Greenhouse represents a greenhouse with plants, moisture sensors and LED lights.
 type Greenhouse struct {
 	Id          string
@@ -289,95 +272,6 @@ func handlerStop(w http.ResponseWriter, req *http.Request) {
 	rpio.Close()
 	log.Println("Shutting down...")
 	os.Exit(3)
-}
-
-// MonitorLED checks if LED should be switched on or off.
-func (l *Led) monitorLed() {
-	mu.Lock()
-	switch {
-	case time.Now().After(l.End):
-		log.Println("Resetting Start and End to tomorrow for LED", l.Id)
-		l.Start = l.Start.AddDate(0, 0, 1)
-		l.End = l.End.AddDate(0, 0, 1)
-		fallthrough
-	case time.Now().Before(l.Start):
-		log.Printf("Turning LED %s off and snoozing for %v until %s...", l.Id, time.Until(l.Start), l.Start.Format("02-01 15:04"))
-		l.switchLedOff()
-		for time.Until(l.Start) > 0 {
-			mu.Unlock()
-			time.Sleep(time.Second)
-			mu.Lock()
-		}
-		fallthrough
-	case time.Now().After(l.Start) && time.Now().Before(l.End):
-		log.Printf("Turning LED %s on and snoozing for %v until %s...", l.Id, time.Until(l.End), l.End.Format("02-01 15:04"))
-		l.switchLedOn()
-		for time.Until(l.End) > 0 {
-			mu.Unlock()
-			time.Sleep(time.Second)
-			mu.Lock()
-		}
-	}
-	mu.Unlock()
-}
-
-// SwitchLedOn switches LED on.
-func (l *Led) switchLedOn() {
-	l.Pin.Write(rpio.Low)
-	l.Active = true
-	return
-}
-
-// SwitchLedOn switches LED off.
-func (l *Led) switchLedOff() {
-	l.Pin.Write(rpio.High)
-	l.Active = false
-	return
-}
-
-func (l *Led) toggleLed() {
-	if l.Active == true {
-		l.switchLedOff()
-	} else {
-		l.switchLedOn()
-	}
-}
-
-// MonitorSoil monitors moisture for all sensors and stores it in the csv file.
-func (g *Greenhouse) measureSoil() {
-	log.Println("Reading soil moisture...")
-	if err := rpio.SpiBegin(rpio.Spi0); err != nil {
-		panic(err)
-	}
-	rpio.SpiChipSelect(0) // Select CE0 slave
-	buffer := make([]byte, 3)
-	var values []int
-	mu.Lock()
-	for _, s := range g.SoilSensors {
-		var results []int
-		for j := 0; j < 5; j++ {
-			buffer[0] = 0x01
-			buffer[1] = byte(8+s.Channel) << 4
-			buffer[2] = 0x00
-			rpio.SpiExchange(buffer) // buffer is populated with received data
-			result := uint16((buffer[1]&0x3))<<8 + uint16(buffer[2])<<6
-			results = append(results, int(result))
-			time.Sleep(time.Millisecond)
-		}
-		s.Time = time.Now()
-		s.Value = seb.CalcAverage(results...)
-		values = append(values, s.Value)
-	}
-	g.SoilValue = seb.CalcAverage(values...)
-	g.SoilTime = time.Now()
-	log.Printf("Average soil is %v", g.SoilValue)
-	xs := []string{fmt.Sprint(g.SoilTime.Format("02-01-2006 15:04:05")), fmt.Sprint(g.SoilValue)}
-	for _, v := range values {
-		xs = append(xs, fmt.Sprint(v))
-	}
-	seb.AppendCSV(moistFile, [][]string{xs})
-	mu.Unlock()
-	rpio.SpiEnd(rpio.Spi0)
 }
 
 // CheckErr evaluates err for errors (not nil)
